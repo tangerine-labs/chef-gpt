@@ -1,47 +1,10 @@
 import { assert, assertEquals, assertMatch } from "@std/assert";
+import { callTool, ORIGIN } from "./test-mcp.ts";
 import { dbTestsEnabled, testUserToken } from "./test-users.ts";
 
-const ORIGIN = Deno.env.get("SUPABASE_URL") ?? "https://abcdefgh.supabase.co";
 const { default: server } = await import("./.mcp-use/build/index.js");
-
-const META = {
-  "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-  "io.modelcontextprotocol/clientInfo": { name: "tools-test", version: "0" },
-  "io.modelcontextprotocol/clientCapabilities": {},
-};
-
-type Result = {
-  content: { type: string; text: string }[];
-  structuredContent?: Record<string, unknown>;
-  isError?: boolean;
-};
-
-async function call(token: string, name: string, args: Record<string, unknown> = {}): Promise<Result> {
-  const res = await server.fetch(
-    new Request(`${ORIGIN}/functions/v1/chef/mcp`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json, text/event-stream",
-        "mcp-protocol-version": "2026-07-28",
-        "mcp-method": "tools/call",
-        "mcp-name": name,
-        authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "tools/call",
-        params: { name, arguments: args, _meta: META },
-      }),
-    }),
-  );
-  const text = await res.text();
-  const line = text.split("\n").find((l) => l.startsWith("data:"));
-  const msg = JSON.parse(line ? line.slice(5) : text);
-  if (msg.error) throw new Error(`${name}: ${JSON.stringify(msg.error)}`);
-  return msg.result as Result;
-}
+const call = (token: string, name: string, args: Record<string, unknown> = {}) =>
+  callTool(server, token, name, args);
 
 Deno.test({
   name: "recipe tools (dev project)",

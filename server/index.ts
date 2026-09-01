@@ -3,7 +3,9 @@ import { oauthSupabaseProvider } from "mcp-use/oauth/supabase";
 import { z } from "zod";
 import { MCP_PATH, SITE_ORIGIN, SUPABASE_URL } from "./config.ts";
 import { registerImageProxy } from "./img-proxy.ts";
+import { registerMemberTools } from "./tools/members.ts";
 import { registerRecipeTools } from "./tools/recipes.ts";
+import { registerRoundTools } from "./tools/rounds.ts";
 
 // Spike B: hello view + Supabase OAuth. Sign-in/consent pages live in site/ (GitHub Pages);
 // Supabase will not serve HTML from *.supabase.co. Domain tools arrive in later phases.
@@ -47,6 +49,8 @@ server.tool(
 );
 
 registerRecipeTools(server);
+registerMemberTools(server);
+registerRoundTools(server);
 registerImageProxy(server);
 
 export default server;

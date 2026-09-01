@@ -1,0 +1,125 @@
+.app {
+  font-family: var(--font-sans, system-ui);
+  color: var(--text-primary, inherit);
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+.h {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.sub {
+  font-size: 13px;
+  opacity: 0.7;
+  margin: 0;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.btn {
+  font: inherit;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-primary, rgba(128, 128, 128, 0.35));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.primary {
+  background: var(--accent, #c2410c);
+  border-color: transparent;
+  color: var(--accent-fg, #fff);
+  font-weight: 600;
+}
+.card {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border-primary, rgba(128, 128, 128, 0.35));
+  border-radius: 12px;
+  padding: 8px;
+}
+.thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: rgba(128, 128, 128, 0.15);
+  flex: none;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meta {
+  font-size: 12px;
+  opacity: 0.65;
+}
+.chip {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-primary, rgba(128, 128, 128, 0.35));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  flex: none;
+}
+.chipOn {
+  color: #fff;
+  border-color: transparent;
+}
+.err {
+  color: #dc2626;
+  font-size: 13px;
+  min-height: 18px;
+  margin: 0;
+}
+.input {
+  font: inherit;
+  flex: 1;
+  min-width: 140px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-primary, rgba(128, 128, 128, 0.35));
+  background: transparent;
+  color: inherit;
+}
+.tag {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-primary, rgba(128, 128, 128, 0.35));
+  cursor: pointer;
+  user-select: none;
+}
+.tagOn {
+  background: var(--accent, #c2410c);
+  color: var(--accent-fg, #fff);
+  border-color: transparent;
+}
+.list {
+  display: grid;
+  gap: 6px;
+  max-height: 320px;
+  overflow: auto;
+}

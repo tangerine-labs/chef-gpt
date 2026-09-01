@@ -126,6 +126,75 @@ export type Database = {
           },
         ];
       };
+      ranking_entries: {
+        Row: {
+          ranking_id: string;
+          recipe_id: string;
+          tier: Database["public"]["Enums"]["tier"];
+        };
+        Insert: {
+          ranking_id: string;
+          recipe_id: string;
+          tier: Database["public"]["Enums"]["tier"];
+        };
+        Update: {
+          ranking_id?: string;
+          recipe_id?: string;
+          tier?: Database["public"]["Enums"]["tier"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ranking_entries_ranking_id_fkey";
+            columns: ["ranking_id"];
+            isOneToOne: false;
+            referencedRelation: "rankings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ranking_entries_recipe_id_fkey";
+            columns: ["recipe_id"];
+            isOneToOne: false;
+            referencedRelation: "recipes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      rankings: {
+        Row: {
+          id: string;
+          member_id: string;
+          round_id: string;
+          submitted_at: string;
+        };
+        Insert: {
+          id?: string;
+          member_id: string;
+          round_id: string;
+          submitted_at?: string;
+        };
+        Update: {
+          id?: string;
+          member_id?: string;
+          round_id?: string;
+          submitted_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rankings_member_id_fkey";
+            columns: ["member_id"];
+            isOneToOne: false;
+            referencedRelation: "members";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rankings_round_id_fkey";
+            columns: ["round_id"];
+            isOneToOne: false;
+            referencedRelation: "rounds";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       recipes: {
         Row: {
           allergens: string[];
@@ -240,6 +309,104 @@ export type Database = {
           },
         ];
       };
+      round_candidates: {
+        Row: {
+          position: number;
+          recipe_id: string;
+          round_id: string;
+        };
+        Insert: {
+          position?: number;
+          recipe_id: string;
+          round_id: string;
+        };
+        Update: {
+          position?: number;
+          recipe_id?: string;
+          round_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "round_candidates_recipe_id_fkey";
+            columns: ["recipe_id"];
+            isOneToOne: false;
+            referencedRelation: "recipes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "round_candidates_round_id_fkey";
+            columns: ["round_id"];
+            isOneToOne: false;
+            referencedRelation: "rounds";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      round_participants: {
+        Row: {
+          member_id: string;
+          round_id: string;
+        };
+        Insert: {
+          member_id: string;
+          round_id: string;
+        };
+        Update: {
+          member_id?: string;
+          round_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "round_participants_member_id_fkey";
+            columns: ["member_id"];
+            isOneToOne: false;
+            referencedRelation: "members";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "round_participants_round_id_fkey";
+            columns: ["round_id"];
+            isOneToOne: false;
+            referencedRelation: "rounds";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      rounds: {
+        Row: {
+          closed_at: string | null;
+          created_at: string;
+          household_id: string;
+          id: string;
+          label: string;
+          status: Database["public"]["Enums"]["round_status"];
+        };
+        Insert: {
+          closed_at?: string | null;
+          created_at?: string;
+          household_id: string;
+          id?: string;
+          label?: string;
+          status?: Database["public"]["Enums"]["round_status"];
+        };
+        Update: {
+          closed_at?: string | null;
+          created_at?: string;
+          household_id?: string;
+          id?: string;
+          label?: string;
+          status?: Database["public"]["Enums"]["round_status"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rounds_household_id_fkey";
+            columns: ["household_id"];
+            isOneToOne: false;
+            referencedRelation: "households";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -248,9 +415,11 @@ export type Database = {
       cookbook_household: { Args: { cid: string }; Returns: string };
       ensure_household: { Args: never; Returns: string };
       is_member_of: { Args: { hid: string }; Returns: boolean };
+      round_household: { Args: { rid: string }; Returns: string };
     };
     Enums: {
-      [_ in never]: never;
+      round_status: "open" | "closed";
+      tier: "S" | "A" | "B" | "C" | "D" | "F" | "GARBAGE";
     };
     CompositeTypes: {
       [_ in never]: never;
@@ -375,6 +544,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      round_status: ["open", "closed"],
+      tier: ["S", "A", "B", "C", "D", "F", "GARBAGE"],
+    },
   },
 } as const;
