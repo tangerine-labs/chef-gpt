@@ -46,6 +46,8 @@ async function call(token: string, name: string, args: Record<string, unknown> =
 Deno.test({
   name: "recipe tools (dev project)",
   ignore: !dbTestsEnabled,
+  sanitizeOps: false, // supabase-js keeps fetch/timer handles open
+  sanitizeResources: false,
   fn: async (t) => {
     const a = await testUserToken("a");
     const b = await testUserToken("b");
