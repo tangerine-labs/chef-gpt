@@ -19,6 +19,8 @@ export const MCP_PATH = `${PUBLIC_BASE}/mcp`;
 const LOCAL_SUPABASE = "http://127.0.0.1:54321";
 
 export const SUPABASE_URL = (env("SUPABASE_URL") ?? LOCAL_SUPABASE).replace(/\/$/, "");
+/** Public anon key; tool handlers pair it with the caller's bearer token so RLS applies. */
+export const SUPABASE_ANON_KEY = env("SUPABASE_ANON_KEY") ?? "";
 
 /** Absolute origin the browser uses to reach us: the Supabase project origin in the cloud. */
 export const SITE_ORIGIN = (env("SITE_ORIGIN") ?? env("SUPABASE_URL") ?? "http://localhost:3000").replace(

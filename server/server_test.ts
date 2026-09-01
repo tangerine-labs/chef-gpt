@@ -1,8 +1,10 @@
 import { assertEquals, assertMatch } from "@std/assert";
 
-const ORIGIN = "https://abcdefgh.supabase.co";
-Deno.env.set("SUPABASE_URL", ORIGIN);
-Deno.env.set("SUPABASE_ANON_KEY", "sb_publishable_test");
+// Use the real dev project when .env is present (tools_test.ts needs it); otherwise a fake origin
+// is enough for these HTTP-level checks. Test files share one process, so never clobber real env.
+const ORIGIN = Deno.env.get("SUPABASE_URL") ?? "https://abcdefgh.supabase.co";
+if (!Deno.env.get("SUPABASE_URL")) Deno.env.set("SUPABASE_URL", ORIGIN);
+if (!Deno.env.get("SUPABASE_ANON_KEY")) Deno.env.set("SUPABASE_ANON_KEY", "sb_publishable_test");
 // mcp-use only serves view-bound tools from a built entry, so tests run against the bundle (`deno task build`).
 const { default: server } = await import("./.mcp-use/build/index.js");
 const { createEdgeHandler } = await import("./edge.ts");
