@@ -6,6 +6,8 @@ import { registerImageProxy } from "./img-proxy.ts";
 import { registerMemberTools } from "./tools/members.ts";
 import { registerRecipeTools } from "./tools/recipes.ts";
 import { registerRoundTools } from "./tools/rounds.ts";
+import { registerShoppingTools } from "./tools/shopping.ts";
+import { registerWeekTools } from "./tools/week.ts";
 
 // Spike B: hello view + Supabase OAuth. Sign-in/consent pages live in site/ (GitHub Pages);
 // Supabase will not serve HTML from *.supabase.co. Domain tools arrive in later phases.
@@ -51,6 +53,8 @@ server.tool(
 registerRecipeTools(server);
 registerMemberTools(server);
 registerRoundTools(server);
+registerWeekTools(server);
+registerShoppingTools(server);
 registerImageProxy(server);
 
 export default server;

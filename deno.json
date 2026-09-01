@@ -3,7 +3,7 @@
   "nodeModulesDir": "auto",
   "tasks": {
     "test": "deno task build && deno test -A --env-file=.env",
-    "check": "deno check server/index.ts server/edge.ts server/views/round-builder/view.tsx server/views/vote/view.tsx packages/domain/mod.ts site/src/main.tsx",
+    "check": "deno check server/index.ts server/edge.ts server/views/round-builder/view.tsx server/views/vote/view.tsx server/views/week-plan/view.tsx server/views/shopping-list/view.tsx packages/domain/mod.ts site/src/main.tsx",
     "lint": "deno run -A npm:@biomejs/biome@2.4.4 check .",
     "fmt": "deno run -A npm:@biomejs/biome@2.4.4 check --write .",
     "build": "cd server && NODE_ENV=production deno run --env-file=../.env -A npm:mcp-use@2.3.4 build --inline",

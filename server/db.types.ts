@@ -94,6 +94,35 @@ export type Database = {
         };
         Relationships: [];
       };
+      meal_plans: {
+        Row: {
+          created_at: string;
+          household_id: string;
+          id: string;
+          week_start: string;
+        };
+        Insert: {
+          created_at?: string;
+          household_id: string;
+          id?: string;
+          week_start: string;
+        };
+        Update: {
+          created_at?: string;
+          household_id?: string;
+          id?: string;
+          week_start?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_household_id_fkey";
+            columns: ["household_id"];
+            isOneToOne: false;
+            referencedRelation: "households";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       members: {
         Row: {
           created_at: string;
@@ -407,6 +436,102 @@ export type Database = {
           },
         ];
       };
+      shopping_items: {
+        Row: {
+          checked: boolean;
+          created_at: string;
+          household_id: string;
+          id: string;
+          name: string;
+          position: number;
+          quantity: string | null;
+          recipe_id: string | null;
+          unit: string | null;
+        };
+        Insert: {
+          checked?: boolean;
+          created_at?: string;
+          household_id: string;
+          id?: string;
+          name: string;
+          position?: number;
+          quantity?: string | null;
+          recipe_id?: string | null;
+          unit?: string | null;
+        };
+        Update: {
+          checked?: boolean;
+          created_at?: string;
+          household_id?: string;
+          id?: string;
+          name?: string;
+          position?: number;
+          quantity?: string | null;
+          recipe_id?: string | null;
+          unit?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "shopping_items_household_id_fkey";
+            columns: ["household_id"];
+            isOneToOne: false;
+            referencedRelation: "households";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "shopping_items_recipe_id_fkey";
+            columns: ["recipe_id"];
+            isOneToOne: false;
+            referencedRelation: "recipes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      slots: {
+        Row: {
+          created_at: string;
+          date: string;
+          id: string;
+          meal_plan_id: string;
+          meal_type: Database["public"]["Enums"]["meal_type"];
+          recipe_id: string | null;
+          title: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          date: string;
+          id?: string;
+          meal_plan_id: string;
+          meal_type?: Database["public"]["Enums"]["meal_type"];
+          recipe_id?: string | null;
+          title?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          date?: string;
+          id?: string;
+          meal_plan_id?: string;
+          meal_type?: Database["public"]["Enums"]["meal_type"];
+          recipe_id?: string | null;
+          title?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "slots_meal_plan_id_fkey";
+            columns: ["meal_plan_id"];
+            isOneToOne: false;
+            referencedRelation: "meal_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "slots_recipe_id_fkey";
+            columns: ["recipe_id"];
+            isOneToOne: false;
+            referencedRelation: "recipes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -415,9 +540,11 @@ export type Database = {
       cookbook_household: { Args: { cid: string }; Returns: string };
       ensure_household: { Args: never; Returns: string };
       is_member_of: { Args: { hid: string }; Returns: boolean };
+      plan_household: { Args: { pid: string }; Returns: string };
       round_household: { Args: { rid: string }; Returns: string };
     };
     Enums: {
+      meal_type: "breakfast" | "lunch" | "dinner" | "snack";
       round_status: "open" | "closed";
       tier: "S" | "A" | "B" | "C" | "D" | "F" | "GARBAGE";
     };
@@ -545,6 +672,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      meal_type: ["breakfast", "lunch", "dinner", "snack"],
       round_status: ["open", "closed"],
       tier: ["S", "A", "B", "C", "D", "F", "GARBAGE"],
     },
