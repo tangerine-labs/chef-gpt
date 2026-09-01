@@ -1,5 +1,10 @@
 {
-  "workspace": ["./server", "./site", "./packages/domain", "./packages/ui"],
+  "workspace": [
+    "./server",
+    "./site",
+    "./packages/domain",
+    "./packages/ui"
+  ],
   "nodeModulesDir": "auto",
   "tasks": {
     "test": "deno task build && deno test -A",
@@ -10,7 +15,7 @@
     "dev": "cd server && deno run --env-file=../.env -A npm:mcp-use@2.3.4 dev",
     "stage:edge": "deno task build && cp server/.mcp-use/build/index.js supabase/functions/chef/server.js && cp server/edge.ts server/config.ts supabase/functions/chef/",
     "test:fast": "deno test -A",
-    "build:site": "cd site && deno run -A npm:vite@8 build",
+    "build:site": "cd site && deno run -A npm:vite@8 build && cp dist/index.html dist/404.html",
     "dev:site": "cd site && deno run -A npm:vite@8"
   },
   "imports": {
@@ -33,7 +38,12 @@
     "strict": true,
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "lib": ["dom", "dom.iterable", "esnext", "deno.ns"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext",
+      "deno.ns"
+    ],
     "jsxImportSourceTypes": "@types/react"
   }
 }
