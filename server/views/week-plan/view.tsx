@@ -81,7 +81,6 @@ function Plan() {
                   <input
                     className={css.input}
                     style={{ width: "100%" }}
-                    autoFocus
                     placeholder="e.g. leftovers, eating out"
                     value={typing.text}
                     onChange={(e) => setTyping({ date: d.date, text: e.currentTarget.value })}
