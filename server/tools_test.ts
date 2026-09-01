@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertMatch } from "@std/assert";
-import { callTool, ORIGIN } from "./test-mcp.ts";
+import { callTool } from "./test-mcp.ts";
 import { dbTestsEnabled, testUserToken } from "./test-users.ts";
 
 const { default: server } = await import("./.mcp-use/build/index.js");
