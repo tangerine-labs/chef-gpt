@@ -11,7 +11,8 @@
     "stage:edge": "deno task build && cp server/.mcp-use/build/index.js supabase/functions/chef/server.js && cp server/edge.ts server/config.ts supabase/functions/chef/",
     "test:fast": "deno test -A --env-file=.env",
     "build:site": "cd site && deno run -A npm:vite@8 build && cp dist/index.html dist/404.html",
-    "dev:site": "cd site && deno run -A npm:vite@8"
+    "dev:site": "cd site && deno run -A npm:vite@8",
+    "mcp": "deno run -A --env-file=.env scripts/mcp-call.ts"
   },
   "imports": {
     "mcp-use": "npm:mcp-use@2.3.4",
