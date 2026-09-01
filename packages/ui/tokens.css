@@ -1,0 +1,33 @@
+/* Design tokens shared by the auth site and (via host variables) the MCP App views. */
+:root {
+  --bg: #fdfcfa;
+  --fg: #1c1917;
+  --muted: #78716c;
+  --border: #e7e5e4;
+  --card: #fff;
+  --accent: #c2410c;
+  --accent-fg: #fff;
+  --danger: #b91c1c;
+  --radius: 14px;
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1917;
+    --fg: #fafaf9;
+    --muted: #a8a29e;
+    --border: #44403c;
+    --card: #292524;
+    --accent: #fb923c;
+    --accent-fg: #1c1917;
+  }
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px / 1.5 var(--font);
+}

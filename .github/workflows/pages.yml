@@ -1,0 +1,39 @@
+name: Deploy auth site
+# Publishes site/ (sign-in + consent pages for Supabase's OAuth server) to GitHub Pages.
+# Supabase will not serve HTML from *.supabase.co, so these pages live here. Set the repo
+# variables SUPABASE_URL and SUPABASE_ANON_KEY (both public values) before the first run.
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", "packages/ui/**", "deno.json", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno task build:site
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+      - uses: actions/deploy-pages@v4
+        id: deployment

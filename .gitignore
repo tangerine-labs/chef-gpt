@@ -1,0 +1,15 @@
+node_modules/
+.mcp-use/
+dist/
+.env
+.env.*
+!.env.example
+supabase/.temp/
+supabase/.branches/
+.DS_Store
+*.log
+supabase/functions/chef/server.js
+mcp-env.d.ts
+supabase/functions/chef/edge.ts
+supabase/functions/chef/config.ts
+site/dist/

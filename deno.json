@@ -1,0 +1,39 @@
+{
+  "workspace": ["./server", "./site", "./packages/domain", "./packages/ui"],
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "test": "deno task build && deno test -A",
+    "check": "deno check server/index.ts server/edge.ts packages/domain/mod.ts site/src/main.tsx",
+    "lint": "deno run -A npm:@biomejs/biome@2.4.4 check .",
+    "fmt": "deno run -A npm:@biomejs/biome@2.4.4 check --write .",
+    "build": "cd server && NODE_ENV=production deno run --env-file=../.env -A npm:mcp-use@2.3.4 build --inline",
+    "dev": "cd server && deno run --env-file=../.env -A npm:mcp-use@2.3.4 dev",
+    "stage:edge": "deno task build && cp server/.mcp-use/build/index.js supabase/functions/chef/server.js && cp server/edge.ts server/config.ts supabase/functions/chef/",
+    "test:fast": "deno test -A",
+    "build:site": "cd site && deno run -A npm:vite@8 build",
+    "dev:site": "cd site && deno run -A npm:vite@8"
+  },
+  "imports": {
+    "mcp-use": "npm:mcp-use@2.3.4",
+    "mcp-use/react": "npm:mcp-use@2.3.4/react",
+    "mcp-use/oauth/supabase": "npm:mcp-use@2.3.4/oauth/supabase",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
+    "react": "npm:react@19",
+    "react-dom": "npm:react-dom@19",
+    "zod": "npm:zod@4",
+    "@std/assert": "jsr:@std/assert@1",
+    "hono": "npm:hono@4",
+    "@types/react": "npm:@types/react@19",
+    "@types/react-dom": "npm:@types/react-dom@19",
+    "react-dom/client": "npm:react-dom@19/client",
+    "vite": "npm:vite@8",
+    "@vitejs/plugin-react": "npm:@vitejs/plugin-react@6"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "lib": ["dom", "dom.iterable", "esnext", "deno.ns"],
+    "jsxImportSourceTypes": "@types/react"
+  }
+}
