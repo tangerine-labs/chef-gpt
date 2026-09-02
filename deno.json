@@ -1,10 +1,5 @@
 {
-  "workspace": [
-    "./server",
-    "./site",
-    "./packages/domain",
-    "./packages/ui"
-  ],
+  "workspace": ["./server", "./site", "./packages/domain", "./packages/ui"],
   "nodeModulesDir": "auto",
   "tasks": {
     "test": "deno task build && deno test -A --env-file=.env",
@@ -43,12 +38,7 @@
     "strict": true,
     "jsx": "react-jsx",
     "jsxImportSource": "react",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-      "deno.ns"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext", "deno.ns"],
     "jsxImportSourceTypes": "@types/react"
   }
 }
