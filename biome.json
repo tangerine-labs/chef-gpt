@@ -7,7 +7,8 @@
       "!**/.mcp-use",
       "!**/dist",
       "!supabase/functions/chef/server.js",
-      "!**/mcp-env.d.ts"
+      "!**/mcp-env.d.ts",
+      "!**/.vite"
     ]
   },
   "formatter": {

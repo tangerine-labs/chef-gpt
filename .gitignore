@@ -13,3 +13,4 @@ mcp-env.d.ts
 supabase/functions/chef/edge.ts
 supabase/functions/chef/config.ts
 site/dist/
+site/.vite/
