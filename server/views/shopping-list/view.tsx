@@ -40,6 +40,22 @@ function List() {
 
   const checkedCount = out.items.length - out.uncheckedCount;
 
+  // Flip locally first; the server's reply (or an error revert) follows.
+  const toggle = (item: Item) => {
+    const next = !item.checked;
+    const before = out;
+    const items = out.items.map((i) => (i.id === item.id ? { ...i, checked: next } : i));
+    setState({ items, uncheckedCount: items.filter((i) => !i.checked).length });
+    setError("");
+    update
+      .callTool({ itemId: item.id, checked: next })
+      .then((res) => setState(res.structuredContent as Output))
+      .catch((e) => {
+        setState(before);
+        setError(String((e as Error).message ?? e));
+      });
+  };
+
   return (
     <main className={css.app}>
       <h1 className={css.h}>Shopping list ({out.uncheckedCount})</h1>
@@ -74,8 +90,7 @@ function List() {
             <input
               type="checkbox"
               checked={i.checked}
-              disabled={update.isPending}
-              onChange={() => run(() => update.callTool({ itemId: i.id, checked: !i.checked }))}
+              onChange={() => toggle(i)}
               style={{ width: 20, height: 20, margin: 0, flex: "none" }}
             />
             <span className={css.grow}>
