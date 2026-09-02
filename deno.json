@@ -12,7 +12,8 @@
     "test:fast": "deno test -A --env-file=.env",
     "build:site": "cd site && deno run -A npm:vite@8 build && cp dist/index.html dist/404.html",
     "dev:site": "cd site && deno run -A npm:vite@8",
-    "mcp": "deno run -A --env-file=.env scripts/mcp-call.ts"
+    "mcp": "deno run -A --env-file=.env scripts/mcp-call.ts",
+    "snap": "deno run -A --env-file=.env scripts/snap.ts"
   },
   "imports": {
     "mcp-use": "npm:mcp-use@2.3.4",
@@ -28,7 +29,8 @@
     "@types/react-dom": "npm:@types/react-dom@19",
     "react-dom/client": "npm:react-dom@19/client",
     "vite": "npm:vite@8",
-    "@vitejs/plugin-react": "npm:@vitejs/plugin-react@6"
+    "@vitejs/plugin-react": "npm:@vitejs/plugin-react@6",
+    "@mcp-use/client": "npm:@mcp-use/client@2"
   },
   "compilerOptions": {
     "strict": true,

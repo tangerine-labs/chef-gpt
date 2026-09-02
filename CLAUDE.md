@@ -5,6 +5,7 @@ Household meal planning as MCP Apps on Supabase. Vocabulary: `CONTEXT.md` (use i
 ## Working on the server
 
 - **Build before `server.fetch`.** mcp-use refuses to serve view-bound tools from source; tests and `--local` probes run against `server/.mcp-use/build/` (`deno task build`).
+- **See a view with `deno task snap <tool> ['{json}'] [--dark] [--out png]`** — headless render of the deployed view as the test user (wraps `mcp-use screenshot`); then Read the PNG. Seed the test household first with `deno task mcp call …` so the panel has data. Never ship a view change without looking at it.
 - **Probe the deployed server with `deno task mcp`** (`list`, `call <tool> '{json}'`, `read <uri>`; `--local`, `--user b`, `-v`). It handles the 2026-07-28 protocol headers (`Mcp-Method`, `Mcp-Name`, `params._meta`) and mints real test-user tokens — never hand-roll that curl.
 - Tool handlers: `inputSchema`/`outputSchema` take `z.object(...)`, results need `structuredContent` or `isError: true` (`server/tools/results.ts` has `ok`/`guarded`). Data access only through `userDb(ctx.auth.accessToken)` so RLS applies (ADR 0003).
 - Views: folder name under `server/views/` must equal `view.name`. Import across packages by **relative path** — the bundler resolves no Deno workspace aliases. Images in views go through the `/img` proxy (`proxied()` in `server/tools/rounds.ts`).

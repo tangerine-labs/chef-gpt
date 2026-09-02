@@ -4,12 +4,13 @@
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:@biomejs/biome@2.4.4": "2.4.4",
+    "npm:@mcp-use/client@2": "2.2.2_react@19.2.8_zod@4.4.3_@modelcontextprotocol+server@2.0.0_react-dom@19.2.8__react@19.2.8",
     "npm:@supabase/supabase-js@2": "2.112.4",
     "npm:@types/react-dom@19": "19.2.5_@types+react@19.2.18",
     "npm:@types/react@19": "19.2.18",
     "npm:@vitejs/plugin-react@6": "6.0.5_vite@8.0.16",
     "npm:hono@4": "4.13.1",
-    "npm:mcp-use@2.3.4": "2.3.4_react@19.2.8_react-dom@19.2.8__react@19.2.8_zod@4.4.3",
+    "npm:mcp-use@2.3.4": "2.3.4_@mcp-use+client@2.2.2__react@19.2.8__zod@4.4.3__@modelcontextprotocol+server@2.0.0__react-dom@19.2.8___react@19.2.8_react@19.2.8_react-dom@19.2.8__react@19.2.8_zod@4.4.3",
     "npm:react-dom@19": "19.2.8_react@19.2.8",
     "npm:react@19": "19.2.8",
     "npm:vite@8": "8.0.16",
@@ -127,9 +128,10 @@
         "@jridgewell/sourcemap-codec"
       ]
     },
-    "@mcp-use/cli@4.1.8_@mcp-use+inspector@20.3.3__mcp-use@2.3.4___react@19.2.8___react-dom@19.2.8____react@19.2.8___zod@4.4.3__react@19.2.8__react-dom@19.2.8___react@19.2.8_mcp-use@2.3.4__react@19.2.8__react-dom@19.2.8___react@19.2.8__zod@4.4.3_react@19.2.8_react-dom@19.2.8__react@19.2.8": {
+    "@mcp-use/cli@4.1.8_@mcp-use+client@2.2.2__react@19.2.8__zod@4.4.3__@modelcontextprotocol+server@2.0.0__react-dom@19.2.8___react@19.2.8_@mcp-use+inspector@20.3.3__@mcp-use+client@2.2.2___react@19.2.8___zod@4.4.3___@modelcontextprotocol+server@2.0.0___react-dom@19.2.8____react@19.2.8__mcp-use@2.3.4___@mcp-use+client@2.2.2____react@19.2.8____zod@4.4.3____@modelcontextprotocol+server@2.0.0____react-dom@19.2.8_____react@19.2.8___react@19.2.8___react-dom@19.2.8____react@19.2.8___zod@4.4.3__react@19.2.8__react-dom@19.2.8___react@19.2.8__@modelcontextprotocol+server@2.0.0__zod@4.4.3_@modelcontextprotocol+server@2.0.0_react@19.2.8_react-dom@19.2.8__react@19.2.8_zod@4.4.3": {
       "integrity": "sha512-NHb0G+K1VBRNH8I5bDoaeh9lZqYqwbPN8J75zzxyNVrEPowtfnZ4GAnFLrFhJYR8pyF0NWfQBUGjQ/UfzQKLxA==",
       "dependencies": [
+        "@mcp-use/client",
         "@mcp-use/inspector",
         "@tailwindcss/vite",
         "@vitejs/plugin-react",
@@ -137,9 +139,23 @@
         "vite"
       ],
       "optionalPeers": [
+        "@mcp-use/client",
         "@mcp-use/inspector"
       ],
       "bin": true
+    },
+    "@mcp-use/client@2.2.2_react@19.2.8_zod@4.4.3_@modelcontextprotocol+server@2.0.0_react-dom@19.2.8__react@19.2.8": {
+      "integrity": "sha512-cV1+Bl+G9S1U+lalOhsbpavbPXBf90Lir8saWfgLCt8NOdLWJ54fC1D1LNZFmG/QE+O94hhQrr6jc9d2+2nuZg==",
+      "dependencies": [
+        "@modelcontextprotocol/client",
+        "@modelcontextprotocol/core",
+        "@modelcontextprotocol/ext-apps@npm:@mcp-use/ext-apps@1.7.4-pr720.1_@modelcontextprotocol+client@2.0.0_@modelcontextprotocol+core@2.0.0_@modelcontextprotocol+server@2.0.0_react@19.2.8_react-dom@19.2.8__react@19.2.8_zod@4.4.3",
+        "react",
+        "zod"
+      ],
+      "optionalPeers": [
+        "react"
+      ]
     },
     "@mcp-use/ext-apps@1.7.4-pr720.1_@modelcontextprotocol+client@2.0.0_@modelcontextprotocol+core@2.0.0_@modelcontextprotocol+server@2.0.0_react@19.2.8_react-dom@19.2.8__react@19.2.8_zod@4.4.3": {
       "integrity": "sha512-op0LJm6N9Npt8GQaZ2dF3WwdldvYCw7skD1lRnAOXqpUbyKGiM1l3eMHsJiEE1KRSNLNBYVZrODRG0q38W09iw==",
@@ -159,14 +175,16 @@
         "react-dom"
       ]
     },
-    "@mcp-use/inspector@20.3.3_mcp-use@2.3.4__react@19.2.8__react-dom@19.2.8___react@19.2.8__zod@4.4.3_react@19.2.8_react-dom@19.2.8__react@19.2.8": {
+    "@mcp-use/inspector@20.3.3_@mcp-use+client@2.2.2__react@19.2.8__zod@4.4.3__@modelcontextprotocol+server@2.0.0__react-dom@19.2.8___react@19.2.8_mcp-use@2.3.4__@mcp-use+client@2.2.2___react@19.2.8___zod@4.4.3___@modelcontextprotocol+server@2.0.0___react-dom@19.2.8____react@19.2.8__react@19.2.8__react-dom@19.2.8___react@19.2.8__zod@4.4.3_react@19.2.8_react-dom@19.2.8__react@19.2.8_@modelcontextprotocol+server@2.0.0_zod@4.4.3": {
       "integrity": "sha512-NYAaqsqh5rRVnLmcRymw91ssb1At1gYv1kNjh434LrvxpdjigyMB1tIoymIbpgsaIuy1JpcWi8jUkU46R27Ahw==",
       "dependencies": [
+        "@mcp-use/client",
         "mcp-use",
         "react",
         "react-dom"
       ],
       "optionalPeers": [
+        "@mcp-use/client",
         "mcp-use",
         "react",
         "react-dom"
@@ -604,10 +622,11 @@
         "@jridgewell/sourcemap-codec"
       ]
     },
-    "mcp-use@2.3.4_react@19.2.8_react-dom@19.2.8__react@19.2.8_zod@4.4.3": {
+    "mcp-use@2.3.4_@mcp-use+client@2.2.2__react@19.2.8__zod@4.4.3__@modelcontextprotocol+server@2.0.0__react-dom@19.2.8___react@19.2.8_react@19.2.8_react-dom@19.2.8__react@19.2.8_zod@4.4.3": {
       "integrity": "sha512-pEsz22imubDsKR3H3rqAauojGm/DldRVMARCZtb/mK6vm0Io4hiAu5WuDkExZHZrn4ZWUaA4oJOmehlEzpIxdA==",
       "dependencies": [
         "@mcp-use/cli",
+        "@mcp-use/client",
         "@mcp-use/inspector",
         "@modelcontextprotocol/client",
         "@modelcontextprotocol/core",
@@ -619,6 +638,7 @@
         "react-dom"
       ],
       "optionalPeers": [
+        "@mcp-use/client",
         "react",
         "react-dom"
       ],
@@ -742,6 +762,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",
+      "npm:@mcp-use/client@2",
       "npm:@supabase/supabase-js@2",
       "npm:@types/react-dom@19",
       "npm:@types/react@19",
