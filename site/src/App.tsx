@@ -1,16 +1,24 @@
 import type { Session } from "@supabase/supabase-js";
 import { type FormEvent, useEffect, useState } from "react";
 import css from "./auth.module.css";
-import { authorizationId, forgetAuthorizationId, returnUrl, supabase } from "./supabase.ts";
+import {
+  authorizationId,
+  clearPendingInvite,
+  forgetAuthorizationId,
+  pendingInvite,
+  returnUrl,
+  setPendingInvite,
+  supabase,
+} from "./supabase.ts";
 
 type Details = { clientName: string; clientUri: string | null; scopes: string[] };
 
 type State =
   | { kind: "loading" }
-  | { kind: "no-request" }
+  | { kind: "no-request"; joined?: string }
   | { kind: "sign-in"; id: string; error?: string }
   | { kind: "check-email"; email: string }
-  | { kind: "consent"; id: string; details: Details; error?: string; busy: boolean };
+  | { kind: "consent"; id: string; details: Details; error?: string; busy: boolean; joined?: string };
 
 export function App() {
   const [state, setState] = useState<State>({ kind: "loading" });
@@ -25,8 +33,22 @@ export function App() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  /** Redeem a pending invite once signed in; returns the joined household's name. */
+  async function redeemInvite(session: Session | null): Promise<string | undefined> {
+    const code = pendingInvite();
+    if (!code || !session) return undefined;
+    const { data, error } = await supabase.rpc("join_household", { invite_code: code });
+    clearPendingInvite();
+    if (error) {
+      console.warn("join_household:", error.message);
+      return undefined;
+    }
+    return (data as { household_name: string }[] | null)?.[0]?.household_name;
+  }
+
   async function start(id: string | null, session: Session | null) {
-    if (!id) return setState({ kind: "no-request" });
+    const joined = await redeemInvite(session);
+    if (!id) return setState({ kind: "no-request", joined });
     if (!session) return setState({ kind: "sign-in", id });
     const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(id);
     if (error || !data) {
@@ -42,6 +64,7 @@ export function App() {
       kind: "consent",
       id,
       busy: false,
+      joined,
       details: {
         clientName: d.client?.name || "the application",
         clientUri: d.client?.uri ?? null,
@@ -107,6 +130,19 @@ export function App() {
                 Email me a link
               </button>
             </form>
+            <p className={css.or}>Joining someone's household?</p>
+            <input
+              className={css.input}
+              type="text"
+              placeholder="Invite code, e.g. ABCD-1234"
+              defaultValue={pendingInvite() ?? ""}
+              autoCapitalize="characters"
+              onChange={(e) => {
+                const v = e.currentTarget.value.trim();
+                if (v) setPendingInvite(v);
+                else clearPendingInvite();
+              }}
+            />
             <p className={css.err}>{state.error ?? ""}</p>
           </>
         )}
@@ -123,6 +159,7 @@ export function App() {
         {state.kind === "consent" && (
           <>
             <h1 className={css.title}>Authorize {state.details.clientName}</h1>
+            {state.joined && <p className={css.sub}>You've joined {state.joined}. 🎉</p>}
             <p className={css.sub}>This app wants to use chef-gpt on your behalf.</p>
             <div className={css.box}>
               <b>Application</b>

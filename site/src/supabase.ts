@@ -30,3 +30,18 @@ export function returnUrl(id: string): string {
   url.hash = "";
   return url.toString();
 }
+
+const INVITE_KEY = "chef-gpt:invite";
+
+/** An invite code from `?invite=` or typed on the sign-in page; redeemed once a session exists. */
+export function pendingInvite(): string | null {
+  const fromUrl = new URL(location.href).searchParams.get("invite");
+  if (fromUrl) sessionStorage.setItem(INVITE_KEY, fromUrl);
+  return sessionStorage.getItem(INVITE_KEY);
+}
+export function setPendingInvite(code: string) {
+  sessionStorage.setItem(INVITE_KEY, code);
+}
+export function clearPendingInvite() {
+  sessionStorage.removeItem(INVITE_KEY);
+}

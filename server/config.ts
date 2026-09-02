@@ -27,3 +27,6 @@ export const SITE_ORIGIN = (env("SITE_ORIGIN") ?? env("SUPABASE_URL") ?? "http:/
   /\/$/,
   "",
 );
+
+/** Public URL of the sign-in/consent site (GitHub Pages); invite links point here. */
+export const AUTH_SITE_URL = (env("SITE_URL") ?? "https://tangerine-labs.com/chef-gpt").replace(/\/$/, "");

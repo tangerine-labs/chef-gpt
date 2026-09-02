@@ -94,6 +94,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      invites: {
+        Row: {
+          code: string;
+          created_at: string;
+          created_by: string | null;
+          expires_at: string;
+          household_id: string;
+          id: string;
+          member_id: string | null;
+          used_at: string | null;
+          used_by: string | null;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at: string;
+          household_id: string;
+          id?: string;
+          member_id?: string | null;
+          used_at?: string | null;
+          used_by?: string | null;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          expires_at?: string;
+          household_id?: string;
+          id?: string;
+          member_id?: string | null;
+          used_at?: string | null;
+          used_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "invites_household_id_fkey";
+            columns: ["household_id"];
+            isOneToOne: false;
+            referencedRelation: "households";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "invites_member_id_fkey";
+            columns: ["member_id"];
+            isOneToOne: false;
+            referencedRelation: "members";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       meal_plans: {
         Row: {
           created_at: string;
@@ -539,7 +590,17 @@ export type Database = {
     Functions: {
       cookbook_household: { Args: { cid: string }; Returns: string };
       ensure_household: { Args: never; Returns: string };
+      household_is_untouched: { Args: { hid: string }; Returns: boolean };
       is_member_of: { Args: { hid: string }; Returns: boolean };
+      join_household: {
+        Args: { invite_code: string };
+        Returns: {
+          household_id: string;
+          household_name: string;
+          member_id: string;
+          member_name: string;
+        }[];
+      };
       plan_household: { Args: { pid: string }; Returns: string };
       round_household: { Args: { rid: string }; Returns: string };
     };
