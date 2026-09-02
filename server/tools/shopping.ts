@@ -44,7 +44,7 @@ async function readItems(db: ReturnType<typeof userDb>, hid: string) {
       .from("shopping_items")
       .select(SELECT)
       .eq("household_id", hid)
-      .order("checked")
+
       .order("position")
       .order("created_at"),
     "shopping list",
