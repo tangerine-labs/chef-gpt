@@ -1,0 +1,6 @@
+{
+  "name": "chef-gpt-server",
+  "private": true,
+  "type": "module",
+  "description": "Present only because mcp-use dev reads it; the project is Deno-only (ADR 0004)."
+}

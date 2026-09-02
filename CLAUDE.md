@@ -6,10 +6,12 @@ Household meal planning as MCP Apps on Supabase. Vocabulary: `CONTEXT.md` (use i
 
 - **Build before `server.fetch`.** mcp-use refuses to serve view-bound tools from source; tests and `--local` probes run against `server/.mcp-use/build/` (`deno task build`).
 - **See a view with `deno task snap <tool> ['{json}'] [--dark] [--out png]`** — headless render of the deployed view as the test user (wraps `mcp-use screenshot`); then Read the PNG. Seed the test household first with `deno task mcp call …` so the panel has data. Never ship a view change without looking at it.
+- **Click through a view live**: `deno task dev` (needs `server/package.json`, metadata only) with `MCP_URL=http://localhost:3000/functions/v1/chef/mcp MCP_ASSETS_URL=http://localhost:3000` — without those the dev views point their scripts at the deployed origin and hang on "Compiling…". Open `http://localhost:3000/functions/v1/chef/mcp/inspector`, add the localhost MCP URL, Authenticate (the owner signs in at the consent site; never paste tokens into browser fields), Execute a view tool, then drive it with the Chrome tools. Keep the window ≥1200 px wide or the Inspector goes single-column; typing letters outside a field triggers its keyboard shortcuts.
 - **Probe the deployed server with `deno task mcp`** (`list`, `call <tool> '{json}'`, `read <uri>`; `--local`, `--user b`, `-v`). It handles the 2026-07-28 protocol headers (`Mcp-Method`, `Mcp-Name`, `params._meta`) and mints real test-user tokens — never hand-roll that curl.
 - Tool handlers: `inputSchema`/`outputSchema` take `z.object(...)`, results need `structuredContent` or `isError: true` (`server/tools/results.ts` has `ok`/`guarded`). Data access only through `userDb(ctx.auth.accessToken)` so RLS applies (ADR 0003).
 - Views: folder name under `server/views/` must equal `view.name`. Import across packages by **relative path** — the bundler resolves no Deno workspace aliases. Images in views go through the `/img` proxy (`proxied()` in `server/tools/rounds.ts`).
 - Deploy: `deno task stage:edge`, then `supabase functions deploy chef --project-ref <ref> --no-verify-jwt`. A 500 from the deploy API is transient — retry once before digging.
+- Anything a view lists must have a **deterministic order** (`position`, `created_at`, then `id`): batch inserts share a `created_at`, and Postgres reorders ties after an UPDATE, so rows visibly jump under an optimistic UI.
 
 ## Database
 

@@ -46,7 +46,8 @@ async function readItems(db: ReturnType<typeof userDb>, hid: string) {
       .eq("household_id", hid)
 
       .order("position")
-      .order("created_at"),
+      .order("created_at")
+      .order("id"),
     "shopping list",
   );
   const items = rows.map(rowToItem);
@@ -222,8 +223,9 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
             await db
               .from("shopping_items")
               .insert(
-                fresh.map((i) => ({
+                fresh.map((i, idx) => ({
                   household_id: hid,
+                  position: idx,
                   name: i.name,
                   quantity: i.quantity,
                   unit: i.unit,
