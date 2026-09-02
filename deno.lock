@@ -11,6 +11,7 @@
     "npm:@vitejs/plugin-react@6": "6.0.5_vite@8.0.16",
     "npm:hono@4": "4.13.1",
     "npm:mcp-use@2.3.4": "2.3.4_@mcp-use+client@2.2.2__react@19.2.8__zod@4.4.3__@modelcontextprotocol+server@2.0.0__react-dom@19.2.8___react@19.2.8_react@19.2.8_react-dom@19.2.8__react@19.2.8_zod@4.4.3",
+    "npm:playwright-core@1": "1.62.1",
     "npm:react-dom@19": "19.2.8_react@19.2.8",
     "npm:react@19": "19.2.8",
     "npm:vite@8": "8.0.16",
@@ -659,6 +660,10 @@
     },
     "pkce-challenge@5.0.1": {
       "integrity": "sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ=="
+    },
+    "playwright-core@1.62.1": {
+      "integrity": "sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==",
+      "bin": true
     },
     "postcss@8.5.26": {
       "integrity": "sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==",

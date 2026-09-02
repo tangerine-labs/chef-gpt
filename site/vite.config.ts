@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
       __SUPABASE_URL__: JSON.stringify(env.SUPABASE_URL ?? ""),
       __SUPABASE_ANON_KEY__: JSON.stringify(env.SUPABASE_ANON_KEY ?? ""),
     },
-    build: { outDir: "dist", emptyOutDir: true },
+    build: {
+      outDir: "dist",
+      emptyOutDir: true,
+      rollupOptions: { input: { main: "index.html", preview: "preview.html" } },
+    },
   };
 });
