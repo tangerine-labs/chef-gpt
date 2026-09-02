@@ -70,21 +70,21 @@ function List() {
       </div>
       <div className={css.list} style={{ maxHeight: 420 }}>
         {out.items.map((i) => (
-          <button
-            type="button"
-            key={i.id}
-            className={css.card}
-            style={{ textAlign: "left", cursor: "pointer", opacity: i.checked ? 0.5 : 1, font: "inherit" }}
-            onClick={() => run(() => update.callTool({ itemId: i.id, checked: !i.checked }))}
-          >
-            <span style={{ width: 20 }}>{i.checked ? "☑" : "☐"}</span>
+          <label key={i.id} className={css.card} style={{ cursor: "pointer", opacity: i.checked ? 0.6 : 1 }}>
+            <input
+              type="checkbox"
+              checked={i.checked}
+              disabled={update.isPending}
+              onChange={() => run(() => update.callTool({ itemId: i.id, checked: !i.checked }))}
+              style={{ width: 20, height: 20, margin: 0, flex: "none" }}
+            />
             <span className={css.grow}>
               <span className={css.title} style={{ textDecoration: i.checked ? "line-through" : "none" }}>
                 {[i.quantity, i.unit, i.name].filter(Boolean).join(" ")}
               </span>
               {i.recipeTitle && <span className={css.meta}> · {i.recipeTitle}</span>}
             </span>
-          </button>
+          </label>
         ))}
         {out.items.length === 0 && <p className={css.sub}>Nothing on the list.</p>}
       </div>
