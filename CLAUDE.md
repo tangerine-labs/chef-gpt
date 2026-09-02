@@ -24,7 +24,7 @@ Household meal planning as MCP Apps on Supabase. Vocabulary: `CONTEXT.md` (use i
 
 ## Claude Desktop
 
-- It caches a connector's tool list; after deploying new tools: toggle the connector off/on **and start a new chat** (old chats keep their tool set). Re-auth is a silent bounce once consent exists.
+- It caches a connector's tool list; after deploying new tools either wait (it refreshed by itself within ~an hour) or toggle the connector off/on, **and start a new chat** (old chats keep their tool set). Re-auth is a silent bounce once consent exists. Its settings page splits view-bound tools into "Interactive tools" — add the two counts.
 - Custom connectors reach the server from Anthropic's egress — localhost never works; test against the deployed dev function.
 
 ## Repo habits
