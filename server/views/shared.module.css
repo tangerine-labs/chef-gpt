@@ -3,7 +3,9 @@
   color: var(--text-primary, inherit);
   padding: 12px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
+  overflow-x: hidden;
 }
 .h {
   font-size: 18px;
@@ -23,6 +25,8 @@
 }
 .btn {
   font: inherit;
+  flex: none;
+  white-space: nowrap;
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid var(--border-primary, rgba(128, 128, 128, 0.35));
@@ -44,6 +48,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  min-width: 0;
   border: 1px solid var(--border-primary, rgba(128, 128, 128, 0.35));
   border-radius: 12px;
   padding: 8px;
@@ -119,6 +124,7 @@
 }
 .list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   max-height: 320px;
   overflow: auto;
