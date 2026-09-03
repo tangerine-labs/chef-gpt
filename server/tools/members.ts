@@ -55,4 +55,31 @@ export function registerMemberTools(server: MCPServer<SupabaseOAuthUser>) {
         return ok(`Added ${m.name}.`, { member: { id: m.id, name: m.name, linked: false } });
       }),
   );
+
+  server.tool(
+    {
+      name: "rename_member",
+      description: "Rename a member of the household (e.g. turn a sign-in handle into a first name).",
+      inputSchema: z.object({ memberId: z.string(), name: z.string().min(1) }),
+      outputSchema: z.object({ member: Member }),
+    },
+    (input, ctx) =>
+      guarded(async () => {
+        const db = userDb(ctx.auth.accessToken);
+        const hid = await householdId(db);
+        const m = must(
+          await db
+            .from("members")
+            .update({ name: input.name.trim() })
+            .eq("id", input.memberId)
+            .eq("household_id", hid)
+            .select("id, name, user_id")
+            .maybeSingle(),
+          "member",
+        );
+        return ok(`Renamed to ${m.name}.`, {
+          member: { id: m.id, name: m.name, linked: m.user_id !== null },
+        });
+      }),
+  );
 }

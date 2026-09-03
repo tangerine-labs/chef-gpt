@@ -161,4 +161,31 @@ export function registerHouseholdTools(server: MCPServer<SupabaseOAuthUser>) {
         });
       }),
   );
+
+  server.tool(
+    {
+      name: "revoke_invite",
+      description: "Cancel an unused invite code.",
+      inputSchema: z.object({ code: z.string() }),
+      outputSchema: z.object({ revoked: z.boolean() }),
+    },
+    (input, ctx) =>
+      guarded(async () => {
+        const db = userDb(ctx.auth.accessToken);
+        const hid = await householdId(db);
+        const code = input.code.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+        const rows = must(
+          await db
+            .from("invites")
+            .delete()
+            .eq("household_id", hid)
+            .eq("code", code)
+            .is("used_at", null)
+            .select("id"),
+          "revoke",
+        );
+        if (rows.length === 0) throw new ToolError("No unused invite with that code.");
+        return ok(`Invite ${pretty(code)} revoked.`, { revoked: true });
+      }),
+  );
 }
