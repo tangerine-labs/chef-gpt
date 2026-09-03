@@ -16,7 +16,7 @@ type Details = { clientName: string; clientUri: string | null; scopes: string[] 
 type State =
   | { kind: "loading" }
   | { kind: "no-request"; joined?: string }
-  | { kind: "sign-in"; id: string; error?: string }
+  | { kind: "sign-in"; id: string | null; error?: string }
   | { kind: "check-email"; email: string }
   | { kind: "consent"; id: string; details: Details; error?: string; busy: boolean; joined?: string };
 
@@ -47,6 +47,7 @@ export function App() {
   }
 
   async function start(id: string | null, session: Session | null) {
+    if (!session && pendingInvite()) return setState({ kind: "sign-in", id });
     const joined = await redeemInvite(session);
     if (!id) return setState({ kind: "no-request", joined });
     if (!session) return setState({ kind: "sign-in", id });
@@ -73,7 +74,7 @@ export function App() {
     });
   }
 
-  async function google(id: string) {
+  async function google(id: string | null) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: returnUrl(id) },
@@ -81,7 +82,7 @@ export function App() {
     if (error) setState({ kind: "sign-in", id, error: error.message });
   }
 
-  async function magicLink(id: string, e: FormEvent<HTMLFormElement>) {
+  async function magicLink(id: string | null, e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const email = String(new FormData(e.currentTarget).get("email") ?? "").trim();
     const { error } = await supabase.auth.signInWithOtp({
@@ -108,18 +109,30 @@ export function App() {
 
         {state.kind === "no-request" && (
           <>
-            <h1 className={css.title}>chef-gpt</h1>
+            <h1 className={css.title}>{state.joined ? "You're in! 🎉" : "chef-gpt"}</h1>
+            {state.joined && <p className={css.sub}>You've joined {state.joined}.</p>}
             <p className={css.sub}>
-              Nothing to approve here. Add chef-gpt as a connector in your chat app and it will bring you back
-              to this page to sign in.
+              {state.joined ? "Next: add" : "Add"} chef-gpt as a custom connector in Claude (Settings →
+              Connectors → Add custom connector) with this URL, then connect — it brings you back here to
+              approve.
             </p>
+            <div className={css.box}>
+              <b>Connector URL</b>
+              <span>{__SUPABASE_URL__}/functions/v1/chef/mcp</span>
+            </div>
           </>
         )}
 
         {state.kind === "sign-in" && (
           <>
-            <h1 className={css.title}>Sign in to chef-gpt</h1>
-            <p className={css.sub}>Your household's dinners, plans and shopping list.</p>
+            <h1 className={css.title}>
+              {pendingInvite() ? "You've been invited 🎉" : "Sign in to chef-gpt"}
+            </h1>
+            <p className={css.sub}>
+              {pendingInvite()
+                ? "Sign in to join the household. Your dinners, plans and shopping list will be shared."
+                : "Your household's dinners, plans and shopping list."}
+            </p>
             <button type="button" className={css.btn} onClick={() => google(state.id)}>
               <GoogleIcon /> Continue with Google
             </button>

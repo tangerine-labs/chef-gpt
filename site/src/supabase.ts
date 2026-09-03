@@ -24,9 +24,9 @@ export function forgetAuthorizationId() {
 }
 
 /** Where sign-in providers should send the browser back to: this page, carrying the id. */
-export function returnUrl(id: string): string {
+export function returnUrl(id: string | null): string {
   const url = new URL(location.href);
-  url.search = `?authorization_id=${encodeURIComponent(id)}`;
+  url.search = id ? `?authorization_id=${encodeURIComponent(id)}` : "";
   url.hash = "";
   return url.toString();
 }
