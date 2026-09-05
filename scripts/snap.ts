@@ -5,7 +5,8 @@
  *   deno task snap show_shopping_list                 → scratch/snap-show_shopping_list.png
  *   deno task snap open_voting '{"roundId":"…"}' --out /tmp/vote.png --dark --width 480
  *
- * Flags: --user a|b · --url <mcp url> · --out <png> · --width <px> · --dark
+ * Flags: --user a|b · --url <mcp url> · --out <png> (default $SNAP_DIR/snap-<tool>.png, SNAP_DIR=scratch)
+ *        --width <px> · --dark
  * Wraps `mcp-use screenshot` (needs @mcp-use/client, in deno.json) with a minted token.
  */
 import { testUserToken } from "../server/test-users.ts";
@@ -31,7 +32,10 @@ const width = flag("--width") ?? "600";
 const dark = has("--dark");
 const [tool, json] = args;
 if (!tool) throw new Error("usage: snap <tool> ['{json args}'] [--out png] [--width px] [--dark]");
-const out = flag("--out") ?? `${Deno.env.get("SNAP_DIR") ?? "."}/snap-${tool}.png`;
+// mcp-use runs with cwd=server/, so resolve the path here (relative to where the task was run).
+const outArg = flag("--out") ?? `${Deno.env.get("SNAP_DIR") ?? "scratch"}/snap-${tool}.png`;
+const out = outArg.startsWith("/") ? outArg : `${Deno.cwd()}/${outArg}`;
+Deno.mkdirSync(out.replace(/[^/]*$/, ""), { recursive: true });
 
 const token = await testUserToken(user);
 const cmd = new Deno.Command("deno", {

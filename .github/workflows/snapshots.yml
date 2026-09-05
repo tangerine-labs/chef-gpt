@@ -1,0 +1,84 @@
+name: Snapshots
+# Renders every fixture story (light + dark) from the PR's code and posts them as one PR
+# comment, updated on every push. PNGs live on the `snapshots` branch under pr-<number>/, so
+# the comment can embed them by raw URL (pinned to the commit that added them); the folder is
+# deleted when the PR closes. Fork PRs are skipped: their token cannot push or comment.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    paths:
+      - "packages/ui/**"
+      - "site/**"
+      - "scripts/preview-snap.ts"
+      - "scripts/snapshot-comment.ts"
+      - "deno.json"
+      - ".github/workflows/snapshots.yml"
+permissions:
+  contents: write
+  pull-requests: write
+concurrency:
+  group: snapshots-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+env:
+  PR: ${{ github.event.pull_request.number }}
+  GH_TOKEN: ${{ github.token }}
+jobs:
+  snap:
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Render every story
+        run: deno task preview:snap --all
+      - name: Publish PNGs to the snapshots branch
+        id: publish
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git fetch --depth=1 origin snapshots; then
+            git worktree add snaps FETCH_HEAD
+            git -C snaps checkout -B snapshots
+          else
+            git worktree add --orphan -b snapshots snaps
+          fi
+          rm -rf "snaps/pr-$PR"
+          mkdir -p "snaps/pr-$PR"
+          cp scratch/*.png "snaps/pr-$PR/"
+          cd snaps
+          git add -A
+          git commit -qm "PR #$PR @ ${HEAD_SHA::7}" || echo "snapshots unchanged"
+          git push origin snapshots
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      - name: Upsert the PR comment
+        run: |
+          set -euo pipefail
+          deno run -A scripts/snapshot-comment.ts scratch/manifest.json \
+            "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/${{ steps.publish.outputs.sha }}/pr-$PR" > body.md
+          id=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- snapshots -->")) | .id' | head -n1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$id" -F body=@body.md > /dev/null
+          else
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@body.md > /dev/null
+          fi
+  cleanup:
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Drop this PR's folder from the snapshots branch
+        run: |
+          set -euo pipefail
+          git clone --depth=1 --branch snapshots "https://x-access-token:$GH_TOKEN@github.com/$GITHUB_REPOSITORY.git" snaps || exit 0
+          cd snaps
+          [ -d "pr-$PR" ] || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -rq "pr-$PR"
+          git commit -qm "PR #$PR closed"
+          git push origin snapshots

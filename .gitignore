@@ -14,3 +14,4 @@ supabase/functions/chef/edge.ts
 supabase/functions/chef/config.ts
 site/dist/
 site/.vite/
+scratch/
