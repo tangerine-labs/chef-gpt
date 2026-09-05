@@ -41,7 +41,9 @@ deno task mcp list | call <tool> '{json}' | read <uri>     # poke the deployed s
 deno task dev                                              # mcp-use Inspector on localhost for real clicks
 ```
 
-Screenshots land in `scratch/` at the repo root (gitignored): `preview.png`, `preview-<story>[-dark].png`, `snap-<tool>.png`. `--out <png>` names the file, `SNAP_DIR=<dir>` moves the directory; the script prints the path it wrote. Stories come from `site/src/fixtures.ts`, and `--story` must match the heading exactly — several contain an em dash, so quote it (`--story "Week plan — no round yet"`). `preview:snap --help` lists the flags.
+Screenshots land in `scratch/` at the repo root (gitignored): `preview.png`, `preview-<story>[-dark].png`, `snap-<tool>.png`. `--out <png>` names the file, `SNAP_DIR=<dir>` moves the directory; the script prints the path it wrote. Stories come from `site/src/fixtures.ts`, and `--story` must match the heading exactly — several contain an em dash, so quote it (`--story "Week plan — no round yet"`). `preview:snap --help` lists the flags. `--all` renders every story in both themes at its own width and writes `scratch/manifest.json`.
+
+PRs that touch `packages/ui/`, `site/` or the snap scripts get a **Fixture snapshots** comment from `.github/workflows/snapshots.yml`: every story, light and dark, rendered from the PR's code and refreshed on each push. The PNGs are committed to the `snapshots` branch under `pr-<number>/` (cleaned up when the PR closes) so the comment can embed them; fork PRs are skipped because their token cannot push or comment.
 
 ## Layout
 
@@ -51,5 +53,5 @@ server/            mcp-use server: tools, views/
 packages/domain/   pure domain logic (tiers, ranked list, week math)
 packages/ui/       shared React primitives
 supabase/          config, migrations, the `chef` edge function
-scripts/           dev tooling: mcp-call (probe the server), snap + preview-snap (screenshots), setup-supabase.sh, recipe import
+scripts/           dev tooling: mcp-call (probe the server), snap + preview-snap (screenshots), snapshot-comment (CI), setup-supabase.sh, recipe import
 ```
