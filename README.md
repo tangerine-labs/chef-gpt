@@ -27,6 +27,22 @@ deno task build:site    # static auth site → site/dist (deployed by .github/wo
 supabase functions deploy chef --project-ref <ref> --no-verify-jwt
 ```
 
+Always `deno task <name>` (or `deno run <name>`) — a bare `deno preview:snap` is parsed as a URL and fails with `Unsupported scheme "preview"`.
+
+### Looking at views
+
+Three tiers, cheapest first: fixture gallery → headless PNG of a deployed view → click through it live.
+
+```sh
+deno task preview                                          # fixture gallery in the browser (site/preview.html, every component in several states)
+deno task preview:snap [--story "Vote"] [--dark] [--width 400] [--out x.png]   # same gallery, headless, no backend → PNG
+deno task snap <tool> ['{json}'] [--dark] [--width 600] [--out x.png]          # a deployed view as the test user → PNG (needs .env)
+deno task mcp list | call <tool> '{json}' | read <uri>     # poke the deployed server as the test user (seed data before snapping)
+deno task dev                                              # mcp-use Inspector on localhost for real clicks
+```
+
+Screenshots land in `scratch/` at the repo root (gitignored): `preview.png`, `preview-<story>[-dark].png`, `snap-<tool>.png`. `--out <png>` names the file, `SNAP_DIR=<dir>` moves the directory; the script prints the path it wrote. Stories come from `site/src/fixtures.ts`, and `--story` must match the heading exactly — several contain an em dash, so quote it (`--story "Week plan — no round yet"`). `preview:snap --help` lists the flags.
+
 ## Layout
 
 ```
@@ -35,5 +51,5 @@ server/            mcp-use server: tools, views/
 packages/domain/   pure domain logic (tiers, ranked list, week math)
 packages/ui/       shared React primitives
 supabase/          config, migrations, the `chef` edge function
-scripts/           one-off scripts (recipe import)
+scripts/           dev tooling: mcp-call (probe the server), snap + preview-snap (screenshots), setup-supabase.sh, recipe import
 ```
