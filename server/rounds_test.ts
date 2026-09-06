@@ -17,7 +17,8 @@ Deno.test({
 
     // Two candidates from the imported corpus.
     const s = await call(a, "search_recipes", { limit: 2 });
-    const [c1, c2] = (s.structuredContent?.recipes as { id: string }[]).map((r) => r.id);
+    const found = s.structuredContent?.recipes as { id: string; title: string }[];
+    const [c1, c2] = found.map((r) => r.id);
 
     // Ensure a kid member exists (idempotent-ish: reuse if a previous run created one).
     const lm = await call(a, "list_members");
@@ -91,16 +92,29 @@ Deno.test({
       assertEquals(r.structuredContent, { votedCount: 1, total: 2, closed: false });
     });
 
-    await t.step("last participant's ranking auto-closes the round", async () => {
+    await t.step(
+      "a ranking by names must still cover every candidate, and says which is missing",
+      async () => {
+        const r = await call(a, "submit_ranking", {
+          member: "emma",
+          entries: [{ recipe: found[0].title, tier: "S" }],
+        });
+        assertEquals(r.isError, true);
+        assertMatch(r.content[0].text, new RegExp(`Missing: ${found[1].title.slice(0, 10)}`));
+      },
+    );
+
+    await t.step("last participant's ranking by name (latest open round) auto-closes the round", async () => {
       const r = await call(a, "submit_ranking", {
-        roundId,
-        memberId: emma.id,
+        member: "emma",
         entries: [
-          { recipeId: c1, tier: "GARBAGE" },
-          { recipeId: c2, tier: "S" },
+          { recipe: found[0].title, tier: "GARBAGE" },
+          { recipe: found[1].title, tier: "S" },
         ],
       });
+      assert(!r.isError, r.content[0].text);
       assertEquals((r.structuredContent as { closed: boolean }).closed, true);
+      assertMatch(r.content[0].text, /^Emma has voted/);
     });
 
     await t.step("ranked list sums points with per-member tiers", async () => {
@@ -137,16 +151,31 @@ Deno.test({
       assertEquals(v.isError, true);
     });
 
-    await t.step("close_round closes an open round early", async () => {
+    await t.step("create_round by titles and names, then close_round closes it early", async () => {
       const r2 = await call(a, "create_round", {
-        candidateRecipeIds: [c1, c2],
-        participantMemberIds: [emma.id],
+        candidates: found.map((r) => r.title),
+        participants: ["Emma"],
       });
-      const id2 = (r2.structuredContent?.round as { id: string }).id;
+      assert(!r2.isError, r2.content[0].text);
+      const round2 = r2.structuredContent?.round as { id: string; participants: { name: string }[] };
+      assertEquals(
+        round2.participants.map((p) => p.name),
+        ["Emma"],
+      );
+      const id2 = round2.id;
       const closed = await call(a, "close_round", { roundId: id2 });
       assertEquals((closed.structuredContent?.round as { status: string }).status, "closed");
       const res = await call(a, "get_round_results", { roundId: id2 });
       assert(!res.isError, res.content[0].text);
+    });
+
+    await t.step("create_round needs two candidates and known names", async () => {
+      const few = await call(a, "create_round", { candidates: [found[0].title] });
+      assertEquals(few.isError, true);
+      assertMatch(few.content[0].text, /at least two/);
+      const who = await call(a, "create_round", { candidateRecipeIds: [c1, c2], participants: ["Nobody"] });
+      assertEquals(who.isError, true);
+      assertMatch(who.content[0].text, /No member named "Nobody"/);
     });
   },
 });

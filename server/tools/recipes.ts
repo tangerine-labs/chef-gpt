@@ -2,7 +2,8 @@ import type { MCPServer } from "mcp-use";
 import type { SupabaseOAuthUser } from "mcp-use/oauth/supabase";
 import { z } from "zod";
 import { type Db, householdId, must, type RecipeRow, ToolError, userDb } from "../db.ts";
-import { guarded, ok } from "./results.ts";
+import { resolveRecipe } from "./resolve.ts";
+import { guarded, hints, ok } from "./results.ts";
 
 const Ingredient = z.object({
   text: z.string().describe("The ingredient line as written, e.g. '2 dl cream'"),
@@ -131,6 +132,8 @@ export function registerRecipeTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "search_recipes",
+      title: "Search recipes",
+      annotations: hints.read,
       description:
         "Search recipes across the household's enabled cookbooks (system cookbooks like Aarstiderne/HelloFresh plus the household's own). Retired recipes are excluded unless includeRetired is set. Returns up to `limit` summaries; use get_recipe for ingredients and instructions.",
       inputSchema: z.object({
@@ -174,15 +177,22 @@ export function registerRecipeTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "get_recipe",
-      description: "Full recipe: ingredients, instructions, allergens, source URL.",
-      inputSchema: z.object({ recipeId: z.string() }),
+      title: "Recipe",
+      annotations: hints.read,
+      description:
+        "Full recipe: ingredients, instructions, allergens, source URL. Name it by title, or pass recipeId.",
+      inputSchema: z.object({
+        recipe: z.string().optional().describe("Recipe title (a unique part of it is enough)"),
+        recipeId: z.string().optional(),
+      }),
       outputSchema: z.object({ recipe: RecipeFull }),
     },
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
         const s = await scope(db);
-        const r = must(await db.from("recipes").select("*").eq("id", input.recipeId).maybeSingle(), "recipe");
+        const ref = await resolveRecipe(db, input);
+        const r = must(await db.from("recipes").select("*").eq("id", ref.id).maybeSingle(), "recipe");
         const recipe = full(r, s);
         const text = [
           `# ${recipe.title}`,
@@ -211,6 +221,8 @@ export function registerRecipeTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "create_recipe",
+      title: "Create recipe",
+      annotations: hints.create,
       description:
         "Add a recipe to one of the household's own cookbooks (default: the first one). Use for recipes the agent writes or the user dictates.",
       inputSchema: z.object({
@@ -261,19 +273,23 @@ export function registerRecipeTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "copy_recipe_to_cookbook",
+      title: "Copy recipe to cookbook",
+      annotations: hints.create,
       description:
-        "Copy a recipe (typically from a system cookbook) into one of the household's own cookbooks so it can be edited. Records what it was based on.",
-      inputSchema: z.object({ recipeId: z.string(), cookbookId: z.string().optional() }),
+        "Copy a recipe (typically from a system cookbook) into one of the household's own cookbooks so it can be edited. Name it by title, or pass recipeId. Records what it was based on.",
+      inputSchema: z.object({
+        recipe: z.string().optional().describe("Recipe title (a unique part of it is enough)"),
+        recipeId: z.string().optional(),
+        cookbookId: z.string().optional(),
+      }),
       outputSchema: z.object({ recipe: RecipeFull }),
     },
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
         const s = await scope(db);
-        const src = must(
-          await db.from("recipes").select("*").eq("id", input.recipeId).maybeSingle(),
-          "recipe",
-        );
+        const ref = await resolveRecipe(db, input);
+        const src = must(await db.from("recipes").select("*").eq("id", ref.id).maybeSingle(), "recipe");
         const cookbookId = await householdCookbook(db, s, input.cookbookId);
         const { id: _id, created_at: _c, updated_at: _u, cookbook_id: _cb, external_id: _e, ...rest } = src;
         const r = must(
@@ -292,22 +308,25 @@ export function registerRecipeTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "retire_recipe",
+      title: "Retire recipe",
+      annotations: { ...hints.destructive, idempotentHint: true },
       description:
-        "Hide a recipe from this household's searches and candidate lists (or un-hide it). Never automatic.",
-      inputSchema: z.object({ recipeId: z.string(), retired: z.boolean().default(true) }),
+        "Hide a recipe from this household's searches and candidate lists (or un-hide it with retired=false). Name it by title, or pass recipeId. Never automatic.",
+      inputSchema: z.object({
+        recipe: z.string().optional().describe("Recipe title (a unique part of it is enough)"),
+        recipeId: z.string().optional(),
+        retired: z.boolean().default(true),
+      }),
       outputSchema: z.object({ recipeId: z.string(), retired: z.boolean() }),
     },
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
         const hid = await householdId(db);
-        must(await db.from("recipes").select("id").eq("id", input.recipeId).maybeSingle(), "recipe");
+        const ref = await resolveRecipe(db, input, { includeRetired: !input.retired });
         if (input.retired) {
           must(
-            await db
-              .from("retired_recipes")
-              .upsert({ household_id: hid, recipe_id: input.recipeId })
-              .select(),
+            await db.from("retired_recipes").upsert({ household_id: hid, recipe_id: ref.id }).select(),
             "retire",
           );
         } else {
@@ -316,13 +335,13 @@ export function registerRecipeTools(server: MCPServer<SupabaseOAuthUser>) {
               .from("retired_recipes")
               .delete()
               .eq("household_id", hid)
-              .eq("recipe_id", input.recipeId)
+              .eq("recipe_id", ref.id)
               .select(),
             "unretire",
           );
         }
-        return ok(input.retired ? "Retired." : "Back in rotation.", {
-          recipeId: input.recipeId,
+        return ok(input.retired ? `Retired ${ref.name}.` : `${ref.name} is back in rotation.`, {
+          recipeId: ref.id,
           retired: input.retired,
         });
       }),
@@ -331,6 +350,8 @@ export function registerRecipeTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "list_cookbooks",
+      title: "List cookbooks",
+      annotations: hints.read,
       description:
         "Cookbooks visible to the household: system ones (with whether they're enabled) and the household's own.",
       inputSchema: z.object({}),
@@ -371,6 +392,8 @@ export function registerRecipeTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "set_cookbook_enabled",
+      title: "Enable or disable cookbook",
+      annotations: hints.idempotent,
       description:
         "Enable or disable a system cookbook for this household (household cookbooks are always on).",
       inputSchema: z.object({ cookbookId: z.string(), enabled: z.boolean() }),

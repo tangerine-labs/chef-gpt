@@ -2,7 +2,8 @@ import type { MCPServer } from "mcp-use";
 import type { SupabaseOAuthUser } from "mcp-use/oauth/supabase";
 import { z } from "zod";
 import { householdId, must, userDb } from "../db.ts";
-import { guarded, ok } from "./results.ts";
+import { resolveMember } from "./resolve.ts";
+import { guarded, hints, ok } from "./results.ts";
 
 export const Member = z.object({
   id: z.string(),
@@ -14,6 +15,8 @@ export function registerMemberTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "list_members",
+      title: "List members",
+      annotations: hints.read,
       description: "People in the household who can vote. Members without a linked user are typically kids.",
       inputSchema: z.object({}),
       outputSchema: z.object({ members: z.array(Member) }),
@@ -36,6 +39,8 @@ export function registerMemberTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "add_member",
+      title: "Add member",
+      annotations: hints.create,
       description: "Add a member to the household — someone who votes but need not have an account (a kid).",
       inputSchema: z.object({ name: z.string().min(1) }),
       outputSchema: z.object({ member: Member }),
@@ -59,25 +64,33 @@ export function registerMemberTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "rename_member",
-      description: "Rename a member of the household (e.g. turn a sign-in handle into a first name).",
-      inputSchema: z.object({ memberId: z.string(), name: z.string().min(1) }),
+      title: "Rename member",
+      annotations: hints.idempotent,
+      description:
+        "Rename a member of the household (e.g. turn a sign-in handle into a first name). Name them as they are called now, or pass memberId.",
+      inputSchema: z.object({
+        member: z.string().optional().describe("Current name"),
+        memberId: z.string().optional(),
+        name: z.string().min(1).describe("New name"),
+      }),
       outputSchema: z.object({ member: Member }),
     },
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
         const hid = await householdId(db);
+        const who = await resolveMember(db, hid, input);
         const m = must(
           await db
             .from("members")
             .update({ name: input.name.trim() })
-            .eq("id", input.memberId)
+            .eq("id", who.id)
             .eq("household_id", hid)
             .select("id, name, user_id")
             .maybeSingle(),
           "member",
         );
-        return ok(`Renamed to ${m.name}.`, {
+        return ok(`Renamed ${who.name} to ${m.name}.`, {
           member: { id: m.id, name: m.name, linked: m.user_id !== null },
         });
       }),

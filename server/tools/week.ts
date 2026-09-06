@@ -3,7 +3,8 @@ import type { SupabaseOAuthUser } from "mcp-use/oauth/supabase";
 import { z } from "zod";
 import { MEAL_TYPES, weekDates, weekStart } from "../../packages/domain/mod.ts";
 import { type Db, householdId, must, ToolError, userDb } from "../db.ts";
-import { guarded, ok } from "./results.ts";
+import { resolveRecipe } from "./resolve.ts";
+import { guarded, hints, ok } from "./results.ts";
 import { proxied } from "./rounds.ts";
 
 const MealType = z.enum(MEAL_TYPES);
@@ -88,6 +89,8 @@ export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "get_week",
+      title: "Week plan (text)",
+      annotations: hints.read,
       description:
         "The household's meal plan for the week containing `date` (default: today). Days without a slot show —.",
       inputSchema: z.object({ date: z.string().optional().describe("Any date in the week, YYYY-MM-DD") }),
@@ -105,13 +108,16 @@ export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "set_slot",
+      title: "Set meal slot",
+      annotations: hints.idempotent,
       description:
-        "Fill, change or clear one slot in the meal plan. Provide recipeId for a recipe, or title for free text ('eating out'); clear=true empties the slot. Any recipe may go in — winners from a round are not required.",
+        "Fill, change or clear one slot in the meal plan. Name the recipe by title (or pass recipeId), or give title for free text ('eating out'); clear=true empties the slot. Any recipe may go in — winners from a round are not required.",
       inputSchema: z.object({
         date: z.string().describe("YYYY-MM-DD"),
         mealType: MealType.default("dinner"),
+        recipe: z.string().optional().describe("Recipe title (a unique part of it is enough)"),
         recipeId: z.string().optional(),
-        title: z.string().optional(),
+        title: z.string().optional().describe("Free text when it is not a recipe"),
         clear: z.boolean().optional(),
       }),
       outputSchema: z.object({ week: Week }),
@@ -120,9 +126,10 @@ export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
         const hid = await householdId(db);
-        if (!input.clear && !input.recipeId && !input.title) {
-          throw new ToolError("Provide recipeId or title, or clear=true.");
+        if (!input.clear && !input.recipe && !input.recipeId && !input.title) {
+          throw new ToolError("Provide recipe (title) or recipeId, or title for free text, or clear=true.");
         }
+        const recipeId = input.recipe || input.recipeId ? (await resolveRecipe(db, input)).id : undefined;
         const monday = weekStart(input.date);
         const plan = must(
           await db
@@ -147,8 +154,8 @@ export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
                 meal_plan_id: plan.id,
                 date: input.date,
                 meal_type: input.mealType,
-                recipe_id: input.recipeId ?? null,
-                title: input.recipeId ? null : (input.title ?? null),
+                recipe_id: recipeId ?? null,
+                title: recipeId ? null : (input.title ?? null),
               })
               .select("title, recipes(title)")
               .single(),
@@ -167,6 +174,8 @@ export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "show_week",
+      title: "Week plan",
+      annotations: hints.read,
       description:
         "Open the Week Plan app: the week's dinner slots side by side with the latest closed round's ranked list, for filling the week by tapping. For text-only access use get_week / set_slot.",
       inputSchema: z.object({ date: z.string().optional().describe("Any date in the week, YYYY-MM-DD") }),

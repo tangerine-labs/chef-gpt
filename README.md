@@ -38,6 +38,7 @@ deno task preview                                          # fixture gallery in 
 deno task preview:snap [--story "Vote"] [--dark] [--width 400] [--out x.png]   # same gallery, headless, no backend → PNG
 deno task snap <tool> ['{json}'] [--dark] [--width 600] [--out x.png]          # a deployed view as the test user → PNG (needs .env)
 deno task mcp list | call <tool> '{json}' | read <uri>     # poke the deployed server as the test user (seed data before snapping)
+deno task mcp prompts | prompt <name> ['{json}']           # the household prompts (prompts/list, prompts/get)
 deno task dev                                              # mcp-use Inspector on localhost for real clicks
 ```
 
@@ -45,11 +46,17 @@ Screenshots land in `scratch/` at the repo root (gitignored): `preview.png`, `pr
 
 PRs that touch `packages/ui/`, `site/` or the snap scripts get a **Fixture snapshots** comment from `.github/workflows/snapshots.yml`: every story, light and dark, rendered from the PR's code and refreshed on each push. The PNGs are committed to the `snapshots` branch under `pr-<number>/` (cleaned up when the PR closes) so the comment can embed them; fork PRs are skipped because their token cannot push or comment.
 
+### Talking to it
+
+Tools take **names, not ids**: `set_slot {recipe: "chorizo"}`, `update_shopping_item {item: "milk"}`, `create_round {candidates: [...titles], participants: [...names]}`. A unique part of the name is enough; an ambiguous one comes back as an error listing the matches so the assistant can ask. Ids are still accepted (the apps use them). Every tool carries annotations (`readOnlyHint`, `destructiveHint`, `idempotentHint`) so hosts know what needs confirmation.
+
+Five **prompts** package the household routines and show up in Claude Desktop's "+" menu: `plan-week`, `start-round`, `tonight`, `shopping-run`, `onboard`. Each is a user message naming the tools to call and when to stop (`server/prompts.ts`).
+
 ## Layout
 
 ```
 site/              sign-in + consent page for Supabase's OAuth server (GitHub Pages; Supabase won't serve HTML)
-server/            mcp-use server: tools, views/
+server/            mcp-use server: tools/, prompts.ts, views/
 packages/domain/   pure domain logic (tiers, ranked list, week math)
 packages/ui/       shared React primitives
 supabase/          config, migrations, the `chef` edge function

@@ -28,6 +28,19 @@ Deno.test({
       assertMatch(w.content[0].text, new RegExp(recipe.title.slice(0, 12)));
     });
 
+    await t.step("set_slot accepts the recipe by title", async () => {
+      const part = recipe.title.split(" ").slice(0, 3).join(" ");
+      const r = await call(a, "set_slot", { date: tuesday, recipe: part });
+      assert(!r.isError, r.content[0].text);
+      assertMatch(r.content[0].text, new RegExp(`Tuesday ${tuesday}: ${recipe.title.slice(0, 8)}`));
+    });
+
+    await t.step("set_slot with a title matching nothing is a readable error", async () => {
+      const r = await call(a, "set_slot", { date: tuesday, recipe: "zzz-no-such-dish-zzz" });
+      assertEquals(r.isError, true);
+      assertMatch(r.content[0].text, /No recipe named/);
+    });
+
     await t.step("free-text slot and clearing", async () => {
       const r = await call(a, "set_slot", { date: monday, title: "eating out" });
       assertMatch(r.content[0].text, /Monday .*: eating out\./);
@@ -47,23 +60,44 @@ Deno.test({
       assert(Array.isArray(r.structuredContent?.ranked));
     });
 
-    await t.step("shopping: add, check, clear", async () => {
-      const add = await call(a, "add_shopping_item", { name: "Milk", quantity: "1", unit: "l" });
+    await t.step("shopping: add, check by name, clear", async () => {
+      await call(a, "add_shopping_item", { name: "Milk", quantity: "1", unit: "l" });
+      const add = await call(a, "add_shopping_item", { name: "Oat milk" });
       const items = add.structuredContent?.items as { id: string; name: string }[];
-      const milk = items.find((i) => i.name === "Milk");
-      if (!milk) throw new Error("Milk not added");
-      await call(a, "update_shopping_item", { itemId: milk.id, checked: true });
+      if (!items.find((i) => i.name === "Milk")) throw new Error("Milk not added");
+      // exact match beats the substring match on "Oat milk"
+      const checked = await call(a, "update_shopping_item", { item: "milk", checked: true });
+      assert(!checked.isError, checked.content[0].text);
+      assertMatch(checked.content[0].text, /^Milk: checked\./);
+      const named = checked.structuredContent?.items as { name: string; checked: boolean }[];
+      assertEquals(named.find((i) => i.name === "Oat milk")?.checked, false);
+      // once Milk is checked, "milk" still resolves it (exact match), but "oat" hits the unchecked one
+      await call(a, "update_shopping_item", { item: "oat", checked: true });
       const cleared = await call(a, "clear_checked");
-      assert((cleared.structuredContent?.removed as number) >= 1);
+      assert((cleared.structuredContent?.removed as number) >= 2);
       const after = cleared.structuredContent?.items as { name: string }[];
-      assert(!after.some((i) => i.name === "Milk"));
+      assert(!after.some((i) => i.name === "Milk" || i.name === "Oat milk"));
+    });
+
+    await t.step("update_shopping_item needs item or itemId", async () => {
+      const r = await call(a, "update_shopping_item", { checked: true });
+      assertEquals(r.isError, true);
+      assertMatch(r.content[0].text, /Give item/);
     });
 
     await t.step("add_ingredients_from_recipe links items to the recipe and skips duplicates", async () => {
+      // start from an empty list: an aborted earlier run may have left the ingredients behind
+      const before = (await call(a, "list_shopping_items")).structuredContent?.items as {
+        id: string;
+        checked: boolean;
+      }[];
+      for (const i of before.filter((i) => !i.checked))
+        await call(a, "update_shopping_item", { itemId: i.id, checked: true });
+      await call(a, "clear_checked");
       const r1 = await call(a, "add_ingredients_from_recipe", { recipeId: recipe.id });
       const added = r1.structuredContent?.added as number;
       assert(added > 0, r1.content[0].text);
-      const r2 = await call(a, "add_ingredients_from_recipe", { recipeId: recipe.id });
+      const r2 = await call(a, "add_ingredients_from_recipe", { recipe: recipe.title });
       assertEquals(r2.structuredContent?.added, 0);
       assertEquals(r2.structuredContent?.skipped, added);
       const items = r2.structuredContent?.items as {
