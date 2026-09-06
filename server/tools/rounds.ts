@@ -4,7 +4,8 @@ import { z } from "zod";
 import { rankedList, TIERS } from "../../packages/domain/mod.ts";
 import { PUBLIC_BASE, SITE_ORIGIN } from "../config.ts";
 import { type Db, householdId, must, ToolError, userDb } from "../db.ts";
-import { guarded, ok } from "./results.ts";
+import { pickByName, resolveRecipe } from "./resolve.ts";
+import { guarded, hints, ok } from "./results.ts";
 
 const TierSchema = z.enum(TIERS);
 
@@ -111,6 +112,8 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "start_round",
+      title: "Round builder",
+      annotations: hints.read,
       description:
         "Open the Round Builder app to put together a planning round: pick candidate dinners from the cookbooks and choose who votes. To create a round without the app, call create_round directly.",
       inputSchema: z.object({}),
@@ -138,11 +141,18 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "create_round",
+      title: "Create round",
+      annotations: hints.create,
       description:
-        "Create a planning round from candidate recipe ids and participant member ids (defaults to every member). Voting is open until every participant has ranked, or until close_round.",
+        "Create a planning round from candidate recipes (by title) and participants (by name; default: every member). Ids are accepted instead. Voting is open until every participant has ranked, or until close_round.",
       inputSchema: z.object({
         label: z.string().default(""),
-        candidateRecipeIds: z.array(z.string()).min(2),
+        candidates: z
+          .array(z.string())
+          .optional()
+          .describe("Recipe titles (a unique part of each is enough)"),
+        candidateRecipeIds: z.array(z.string()).optional(),
+        participants: z.array(z.string()).optional().describe("Member names; omit for everyone"),
         participantMemberIds: z.array(z.string()).optional(),
       }),
       outputSchema: z.object({ round: RoundInfo }),
@@ -151,11 +161,24 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
         const hid = await householdId(db);
-        let participantIds = input.participantMemberIds;
-        if (!participantIds || participantIds.length === 0) {
-          const members = must(await db.from("members").select("id").eq("household_id", hid), "members");
-          participantIds = members.map((m) => m.id);
-        }
+        const byTitle = await Promise.all(
+          (input.candidates ?? []).map((t) => resolveRecipe(db, { recipe: t }).then((r) => r.id)),
+        );
+        const candidateRecipeIds = [...new Set([...(input.candidateRecipeIds ?? []), ...byTitle])];
+        if (candidateRecipeIds.length < 2) throw new ToolError("A round needs at least two candidates.");
+        const members = must(
+          await db.from("members").select("id, name").eq("household_id", hid).order("created_at"),
+          "members",
+        );
+        let participantIds = input.participantMemberIds ?? [];
+        if (input.participants?.length)
+          participantIds = [
+            ...new Set([
+              ...participantIds,
+              ...input.participants.map((n) => pickByName(members, n, "member").id),
+            ]),
+          ];
+        if (participantIds.length === 0) participantIds = members.map((m) => m.id);
         const round = must(
           await db.from("rounds").insert({ household_id: hid, label: input.label }).select("id").single(),
           "create round",
@@ -164,7 +187,7 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
           await db
             .from("round_candidates")
             .insert(
-              input.candidateRecipeIds.map((recipeId, i) => ({
+              candidateRecipeIds.map((recipeId, i) => ({
                 round_id: round.id,
                 recipe_id: recipeId,
                 position: i,
@@ -191,6 +214,8 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "open_voting",
+      title: "Vote",
+      annotations: hints.read,
       description:
         "Open the Vote app for a round (default: the latest open round). A member picks their name and drags each candidate into a tier. Results stay hidden until the round closes.",
       inputSchema: z.object({ roundId: z.string().optional() }),
@@ -218,36 +243,61 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "submit_ranking",
+      title: "Submit ranking",
+      annotations: hints.idempotent,
       description:
-        "Submit one member's complete ranking for an open round: every candidate placed in a tier (S, A, B, C, D, F, GARBAGE). Re-submitting before the round closes replaces the earlier ranking. The round closes automatically when every participant has voted.",
+        "Submit one member's complete ranking for an open round (default: the latest open one): every candidate placed in a tier (S, A, B, C, D, F, GARBAGE). Name the voter and the candidates by title; ids are accepted instead. Re-submitting before the round closes replaces the earlier ranking. The round closes automatically when every participant has voted.",
       inputSchema: z.object({
-        roundId: z.string(),
-        memberId: z.string(),
-        entries: z.array(z.object({ recipeId: z.string(), tier: TierSchema })).min(1),
+        roundId: z.string().optional().describe("Default: the latest open round"),
+        member: z.string().optional().describe("Who is voting, by name"),
+        memberId: z.string().optional(),
+        entries: z
+          .array(
+            z.object({
+              recipe: z.string().optional().describe("Candidate title (a unique part is enough)"),
+              recipeId: z.string().optional(),
+              tier: TierSchema,
+            }),
+          )
+          .min(1),
       }),
       outputSchema: z.object({ votedCount: z.number(), total: z.number(), closed: z.boolean() }),
     },
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const { row, info, candidateIds } = await roundInfo(db, input.roundId);
+        const hid = await householdId(db);
+        const roundId = input.roundId ?? (await latestRound(db, hid, "open"));
+        const { row, info, candidateIds } = await roundInfo(db, roundId);
         if (row.status !== "open") throw new ToolError("The round is closed; rankings can no longer change.");
-        if (!info.participants.some((p) => p.memberId === input.memberId)) {
-          throw new ToolError("That member is not a participant in this round.");
-        }
-        const got = new Set(input.entries.map((e) => e.recipeId));
+        if (!input.member && !input.memberId)
+          throw new ToolError("Say who is voting: member (name) or memberId.");
+        const voter = input.memberId
+          ? info.participants.find((p) => p.memberId === input.memberId)
+          : pickByName(info.participants, input.member ?? "", "participant");
+        if (!voter) throw new ToolError("That member is not a participant in this round.");
+        const titled = (await candidateCards(db, candidateIds)).map((c) => ({
+          id: c.recipeId,
+          name: c.title,
+        }));
+        const entries = input.entries.map((e) => ({
+          recipeId: e.recipeId ?? pickByName(titled, e.recipe ?? "", "candidate").id,
+          tier: e.tier,
+        }));
+        const got = new Set(entries.map((e) => e.recipeId));
         const missing = candidateIds.filter((id) => !got.has(id));
-        const extra = input.entries.filter((e) => !candidateIds.includes(e.recipeId));
-        if (missing.length || extra.length) {
+        const extra = entries.filter((e) => !candidateIds.includes(e.recipeId));
+        if (missing.length || extra.length || got.size !== entries.length) {
+          const names = titled.filter((t) => missing.includes(t.id)).map((t) => t.name);
           throw new ToolError(
-            `A ranking must place every candidate exactly once. Missing: ${missing.length}, not candidates: ${extra.length}.`,
+            `A ranking must place every candidate exactly once.${names.length ? ` Missing: ${names.join(", ")}.` : ""}${extra.length ? ` Not candidates: ${extra.length}.` : ""}`,
           );
         }
-        await db.from("rankings").delete().eq("round_id", input.roundId).eq("member_id", input.memberId);
+        await db.from("rankings").delete().eq("round_id", roundId).eq("member_id", voter.memberId);
         const ranking = must(
           await db
             .from("rankings")
-            .insert({ round_id: input.roundId, member_id: input.memberId })
+            .insert({ round_id: roundId, member_id: voter.memberId })
             .select("id")
             .single(),
           "ranking",
@@ -255,16 +305,14 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
         must(
           await db
             .from("ranking_entries")
-            .insert(
-              input.entries.map((e) => ({ ranking_id: ranking.id, recipe_id: e.recipeId, tier: e.tier })),
-            )
+            .insert(entries.map((e) => ({ ranking_id: ranking.id, recipe_id: e.recipeId, tier: e.tier })))
             .select("ranking_id"),
           "entries",
         );
-        const after = await roundInfo(db, input.roundId);
+        const after = await roundInfo(db, roundId);
         const votedCount = after.info.participants.filter((p) => p.hasVoted).length;
         const closed = after.info.status === "closed";
-        const name = info.participants.find((p) => p.memberId === input.memberId)?.name ?? "Someone";
+        const name = voter.name;
         return ok(
           closed
             ? `${name} has voted — that was everyone, the round is closed. Use get_round_results.`
@@ -277,6 +325,8 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "close_round",
+      title: "Close round",
+      annotations: hints.destructive,
       description: "Close an open round early (e.g. a participant is away). Results become visible.",
       inputSchema: z.object({ roundId: z.string().optional() }),
       outputSchema: z.object({ round: RoundInfo }),
@@ -303,6 +353,8 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "get_round_results",
+      title: "Round results",
+      annotations: hints.read,
       description:
         "The ranked list of a closed round (default: the latest closed one): candidates ordered by summed tier points across participants, with each member's tier. There is no winner — people pick from the list.",
       inputSchema: z.object({ roundId: z.string().optional() }),

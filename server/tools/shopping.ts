@@ -2,7 +2,8 @@ import type { MCPServer } from "mcp-use";
 import type { SupabaseOAuthUser } from "mcp-use/oauth/supabase";
 import { z } from "zod";
 import { householdId, must, ToolError, userDb } from "../db.ts";
-import { guarded, ok } from "./results.ts";
+import { resolveItem, resolveRecipe } from "./resolve.ts";
+import { guarded, hints, ok } from "./results.ts";
 
 const Item = z.object({
   id: z.string(),
@@ -61,6 +62,8 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "show_shopping_list",
+      title: "Shopping list",
+      annotations: hints.read,
       description:
         "Open the Shopping List app: the household's single running list with check-off. Text-only alternatives: list_shopping_items, add_shopping_item, update_shopping_item, clear_checked, add_ingredients_from_recipe.",
       inputSchema: z.object({}),
@@ -82,6 +85,8 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "list_shopping_items",
+      title: "List shopping items",
+      annotations: hints.read,
       description: "The shopping list as text/structured data.",
       inputSchema: z.object({}),
       outputSchema: ItemsOut,
@@ -98,6 +103,8 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "add_shopping_item",
+      title: "Add shopping item",
+      annotations: hints.create,
       description: "Add one item to the shopping list (free text, optional quantity/unit).",
       inputSchema: z.object({
         name: z.string().min(1),
@@ -130,11 +137,15 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "update_shopping_item",
-      description: "Check/uncheck an item, or rename it.",
+      title: "Update shopping item",
+      annotations: hints.idempotent,
+      description:
+        "Check/uncheck an item, or rename it. Name the item as the user says it ('milk'); unchecked items match first. itemId is the alternative for apps.",
       inputSchema: z.object({
-        itemId: z.string(),
+        item: z.string().optional().describe("Item name, e.g. 'milk'"),
+        itemId: z.string().optional(),
         checked: z.boolean().optional(),
-        name: z.string().optional(),
+        name: z.string().optional().describe("New name, to rename"),
       }),
       outputSchema: ItemsOut,
     },
@@ -147,18 +158,21 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
         if (input.name !== undefined) patch.name = input.name.trim();
         if (input.checked === undefined && input.name === undefined)
           throw new ToolError("Nothing to update.");
-        must(
-          await db.from("shopping_items").update(patch).eq("id", input.itemId).select("id"),
-          "update item",
-        );
+        const item = await resolveItem(db, hid, input);
+        must(await db.from("shopping_items").update(patch).eq("id", item.id).select("id"), "update item");
         const out = await readItems(db, hid);
-        return ok("Updated.", out);
+        const what = patch.name
+          ? `Renamed ${item.name} to ${patch.name}.`
+          : `${item.name}: ${patch.checked ? "checked" : "unchecked"}.`;
+        return ok(what, out);
       }),
   );
 
   server.tool(
     {
       name: "clear_checked",
+      title: "Clear checked items",
+      annotations: hints.destructive,
       description: "Remove every checked-off item from the list.",
       inputSchema: z.object({}),
       outputSchema: ItemsOut.extend({ removed: z.number() }),
@@ -179,10 +193,13 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "add_ingredients_from_recipe",
+      title: "Add ingredients from recipe",
+      annotations: hints.create,
       description:
-        "Add a recipe's ingredients to the shopping list (all of them, or a subset by ingredient name). Items remember which recipe they came from. Duplicates by name are skipped.",
+        "Add a recipe's ingredients to the shopping list (all of them, or a subset by ingredient name). Name the recipe by title, or pass recipeId. Items remember which recipe they came from. Duplicates by name are skipped.",
       inputSchema: z.object({
-        recipeId: z.string(),
+        recipe: z.string().optional().describe("Recipe title (a unique part of it is enough)"),
+        recipeId: z.string().optional(),
         only: z.array(z.string()).optional().describe("Ingredient names to include; omit for all"),
       }),
       outputSchema: ItemsOut.extend({ added: z.number(), skipped: z.number() }),
@@ -191,8 +208,9 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
         const hid = await householdId(db);
+        const ref = await resolveRecipe(db, input);
         const recipe = must(
-          await db.from("recipes").select("id, title, ingredients").eq("id", input.recipeId).maybeSingle(),
+          await db.from("recipes").select("id, title, ingredients").eq("id", ref.id).maybeSingle(),
           "recipe",
         );
         const wanted = input.only?.map((n) => n.toLowerCase());

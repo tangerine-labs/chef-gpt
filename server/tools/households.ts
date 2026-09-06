@@ -3,7 +3,8 @@ import type { SupabaseOAuthUser } from "mcp-use/oauth/supabase";
 import { z } from "zod";
 import { AUTH_SITE_URL } from "../config.ts";
 import { householdId, must, ToolError, userDb } from "../db.ts";
-import { guarded, ok } from "./results.ts";
+import { resolveMember } from "./resolve.ts";
+import { guarded, hints, ok } from "./results.ts";
 
 /** 8 unambiguous characters, shown as XXXX-XXXX. */
 function inviteCode(): string {
@@ -27,6 +28,8 @@ export function registerHouseholdTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "get_household",
+      title: "Household",
+      annotations: hints.read,
       description: "The household the caller acts in: its name, members, and unused invite codes.",
       inputSchema: z.object({}),
       outputSchema: z.object({
@@ -82,10 +85,13 @@ export function registerHouseholdTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "create_invite",
+      title: "Create invite",
+      annotations: hints.create,
       description:
-        "Create a single-use invite code so another signed-in user can join this household. Optionally link it to an existing member (e.g. a kid who now gets an account) so they take over that member instead of appearing twice.",
+        "Create a single-use invite code so another signed-in user can join this household. Optionally link it to an existing member by name (e.g. a kid who now gets an account) so they take over that member instead of appearing twice.",
       inputSchema: z.object({
-        memberId: z.string().optional().describe("Existing member without an account to link the joiner to"),
+        member: z.string().optional().describe("Existing member without an account to link the joiner to"),
+        memberId: z.string().optional(),
         expiresInDays: z.number().int().min(1).max(30).default(7),
       }),
       outputSchema: z.object({ invite: Invite }),
@@ -95,18 +101,12 @@ export function registerHouseholdTools(server: MCPServer<SupabaseOAuthUser>) {
         const db = userDb(ctx.auth.accessToken);
         const hid = await householdId(db);
         let forMember: string | null = null;
-        if (input.memberId) {
-          const m = must(
-            await db
-              .from("members")
-              .select("name, user_id")
-              .eq("id", input.memberId)
-              .eq("household_id", hid)
-              .maybeSingle(),
-            "member",
-          );
-          if (m.user_id) throw new ToolError(`${m.name} already has an account.`);
+        let memberId: string | null = null;
+        if (input.member || input.memberId) {
+          const m = await resolveMember(db, hid, input);
+          if (m.userId) throw new ToolError(`${m.name} already has an account.`);
           forMember = m.name;
+          memberId = m.id;
         }
         const expiresAt = new Date(Date.now() + input.expiresInDays * 86_400_000).toISOString();
         const row = must(
@@ -115,7 +115,7 @@ export function registerHouseholdTools(server: MCPServer<SupabaseOAuthUser>) {
             .insert({
               household_id: hid,
               code: inviteCode().replace("-", ""),
-              member_id: input.memberId ?? null,
+              member_id: memberId,
               created_by: ctx.auth.user.id,
               expires_at: expiresAt,
             })
@@ -135,6 +135,8 @@ export function registerHouseholdTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "join_household",
+      title: "Join household",
+      annotations: hints.idempotent,
       description:
         "Join another household with an invite code. That household becomes the one you act in; an untouched auto-created household of your own is removed.",
       inputSchema: z.object({ code: z.string().min(6) }),
@@ -165,6 +167,8 @@ export function registerHouseholdTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
       name: "revoke_invite",
+      title: "Revoke invite",
+      annotations: hints.destructive,
       description: "Cancel an unused invite code.",
       inputSchema: z.object({ code: z.string() }),
       outputSchema: z.object({ revoked: z.boolean() }),

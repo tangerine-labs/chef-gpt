@@ -3,15 +3,16 @@ import { oauthSupabaseProvider } from "mcp-use/oauth/supabase";
 import { z } from "zod";
 import { MCP_PATH, SITE_ORIGIN, SUPABASE_URL } from "./config.ts";
 import { registerImageProxy } from "./img-proxy.ts";
+import { registerPrompts } from "./prompts.ts";
 import { registerHouseholdTools } from "./tools/households.ts";
 import { registerMemberTools } from "./tools/members.ts";
 import { registerRecipeTools } from "./tools/recipes.ts";
+import { hints } from "./tools/results.ts";
 import { registerRoundTools } from "./tools/rounds.ts";
 import { registerShoppingTools } from "./tools/shopping.ts";
 import { registerWeekTools } from "./tools/week.ts";
 
-// Spike B: hello view + Supabase OAuth. Sign-in/consent pages live in site/ (GitHub Pages);
-// Supabase will not serve HTML from *.supabase.co. Domain tools arrive in later phases.
+// Sign-in/consent pages live in site/ (GitHub Pages); Supabase will not serve HTML from *.supabase.co.
 const server = new MCPServer({
   name: "chef-gpt",
   version: "0.0.1",
@@ -27,6 +28,8 @@ const server = new MCPServer({
 server.tool(
   {
     name: "hello",
+    title: "Hello",
+    annotations: hints.read,
     description: "Smoke-test tool: greets the caller in a view.",
     inputSchema: z.object({ name: z.string().describe("Who to greet") }),
     outputSchema: z.object({ greeting: z.string() }),
@@ -41,6 +44,8 @@ server.tool(
 server.tool(
   {
     name: "whoami",
+    title: "Who am I",
+    annotations: hints.read,
     description: "Smoke-test tool: returns the signed-in user's id and email.",
     inputSchema: z.object({}),
     outputSchema: z.object({ userId: z.string().nullable(), email: z.string().nullable() }),
@@ -57,6 +62,7 @@ registerHouseholdTools(server);
 registerRoundTools(server);
 registerWeekTools(server);
 registerShoppingTools(server);
+registerPrompts(server);
 registerImageProxy(server);
 
 export default server;

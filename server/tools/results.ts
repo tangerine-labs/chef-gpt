@@ -2,6 +2,17 @@
 import type { ToolResult } from "mcp-use";
 import { ToolError } from "../db.ts";
 
+/**
+ * Tool annotations: hosts use them to decide when to ask before calling and how to describe a
+ * call. Every tool touches only its own database, so openWorldHint is false throughout.
+ */
+export const hints = {
+  read: { readOnlyHint: true, openWorldHint: false },
+  create: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  idempotent: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  destructive: { readOnlyHint: false, destructiveHint: true, openWorldHint: false },
+} as const;
+
 /** Text for the agent + structured content for views/typing. */
 export function ok<T>(text: string, structured: T): ToolResult<T> {
   return { content: [{ type: "text", text }], structuredContent: structured };
