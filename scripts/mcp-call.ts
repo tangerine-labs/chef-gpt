@@ -13,7 +13,7 @@
  *
  * Auth: mints a real token for test-a/b@chef-gpt.test via the service role (.env).
  */
-import { testUserToken } from "../server/test-users.ts";
+import { mcpClient } from "./mcp-client.ts";
 
 const args = [...Deno.args];
 const flag = (name: string): string | undefined => {
@@ -36,38 +36,16 @@ const verbose = has("-v");
 const url = flag("--url") ?? `${Deno.env.get("SUPABASE_URL")}/functions/v1/chef/mcp`;
 const [cmd, name, rawArgs] = args;
 
-const META = {
-  "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-  "io.modelcontextprotocol/clientInfo": { name: "mcp-call", version: "0" },
-  "io.modelcontextprotocol/clientCapabilities": {
-    extensions: { "io.modelcontextprotocol/ui": { mimeTypes: ["text/html;profile=mcp-app"] } },
-  },
-};
-
+const client = await mcpClient({ url, user, local });
 async function rpc(method: string, params: Record<string, unknown>) {
-  const token = await testUserToken(user);
-  const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: { ...params, _meta: META } });
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-    accept: "application/json, text/event-stream",
-    "mcp-protocol-version": "2026-07-28",
-    "mcp-method": method,
-    authorization: `Bearer ${token}`,
-  };
-  const n = (params.name ?? params.uri) as string | undefined;
-  if (n) headers["mcp-name"] = n;
-  const req = new Request(url, { method: "POST", headers, body });
-  const res = local
-    ? await (await import("../server/.mcp-use/build/index.js")).default.fetch(req)
-    : await fetch(req);
-  const text = await res.text();
-  if (!res.ok) {
-    console.error(`HTTP ${res.status}`, res.headers.get("www-authenticate") ?? "");
-    console.error(text.slice(0, 500));
+  try {
+    const { msg, ms, timing } = await client.call(method, params);
+    if (verbose) console.error(`${ms.toFixed(0)} ms · ${timing}`);
+    return msg;
+  } catch (e) {
+    console.error(String((e as Error).message ?? e));
     Deno.exit(1);
   }
-  const line = text.split("\n").find((l) => l.startsWith("data:"));
-  return JSON.parse(line ? line.slice(5) : text);
 }
 
 switch (cmd) {

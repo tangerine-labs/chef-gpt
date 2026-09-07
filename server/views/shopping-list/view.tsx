@@ -27,7 +27,9 @@ export default function View() {
   const ctx = useToolContext();
   return (
     <ThemeProvider>
-      <Frame ctx={ctx}>{(o) => <Wired list={o as ShoppingList} />}</Frame>
+      <Frame ctx={ctx} view="shopping-list">
+        {(o) => <Wired list={o as ShoppingList} />}
+      </Frame>
     </ThemeProvider>
   );
 }

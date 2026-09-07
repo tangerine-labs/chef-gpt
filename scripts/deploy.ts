@@ -9,7 +9,7 @@
  *    (Server-side bundling on deploy fails somewhere above 2.5 MB; inline views hit that.)
  * 2. Creates the bucket if needed and uploads server/.mcp-use/build/views/** under the same paths
  *    mcp-use put in the manifest (hashed file names, long cache).
- * 3. Stages server.js, edge.ts and config.ts into supabase/functions/chef and deploys.
+ * 3. Stages server.js, edge.ts, config.ts and timing.ts into supabase/functions/chef and deploys.
  *
  * The bucket shares the function's origin, so the views' CSP needs no extra domain.
  */
@@ -38,6 +38,21 @@ const run = async (cmd: string[], opts: { cwd?: string; env?: Record<string, str
     stderr: "inherit",
   }).output();
   if (!out.success) throw new Error(`${cmd.join(" ")} failed (${out.code})`);
+};
+
+/** The Storage API and the deploy API both return the odd 5xx; try three times, a few seconds apart. */
+const retry = async <T>(what: string, fn: () => Promise<T>): Promise<T> => {
+  let last: unknown;
+  for (let i = 1; i <= 3; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      console.warn(`  ${what}: attempt ${i} failed (${String((e as Error).message ?? e).slice(0, 120)})`);
+      await new Promise((r) => setTimeout(r, 4000 * i));
+    }
+  }
+  throw last;
 };
 
 console.log(`→ building with views at ${assetsUrl}`);
@@ -77,12 +92,14 @@ for await (const view of Deno.readDir(viewsDir)) {
     const ext = f.name.slice(f.name.lastIndexOf("."));
     const key = `${keyPrefix}/views/${view.name}/assets/${f.name}`;
     const body = await Deno.readFile(`${assets}${f.name}`);
-    const { error } = await supabase.storage.from(BUCKET).upload(key, body, {
-      contentType: types[ext] ?? "application/octet-stream",
-      cacheControl: "31536000", // hashed names never change
-      upsert: true,
+    await retry(`upload ${f.name}`, async () => {
+      const { error } = await supabase.storage.from(BUCKET).upload(key, body, {
+        contentType: types[ext] ?? "application/octet-stream",
+        cacheControl: "31536000", // hashed names never change
+        upsert: true,
+      });
+      if (error) throw new Error(error.message);
     });
-    if (error) throw new Error(`upload ${key}: ${error.message}`);
     uploaded++;
   }
 }
@@ -90,11 +107,16 @@ console.log(`→ uploaded ${uploaded} view assets to ${BUCKET}/${keyPrefix}/view
 
 const fn = path("supabase/functions/chef/");
 await Deno.copyFile(path("server/.mcp-use/build/index.js"), `${fn}server.js`);
-await Deno.copyFile(path("server/edge.ts"), `${fn}edge.ts`);
-await Deno.copyFile(path("server/config.ts"), `${fn}config.ts`);
+// edge.ts and what it imports; keep this list in step with server/edge.ts
+for (const f of ["edge.ts", "config.ts", "timing.ts"]) await Deno.copyFile(path(`server/${f}`), `${fn}${f}`);
 const size = (await Deno.stat(`${fn}server.js`)).size;
 console.log(`→ staged server.js (${(size / 1024).toFixed(0)} KB); deploying chef to ${ref}`);
-await run(["supabase", "functions", "deploy", "chef", "--project-ref", ref, "--no-verify-jwt"], {
+await retry("functions deploy", () =>
+  run(["supabase", "functions", "deploy", "chef", "--project-ref", ref, "--no-verify-jwt"], {
+    cwd: root.pathname,
+  }),
+);
+console.log("✓ deployed; benching (docs/performance.md)");
+await run(["deno", "run", "-A", "--env-file=.env", "scripts/bench.ts", "--runs", "3"], {
   cwd: root.pathname,
 });
-console.log(`✓ deployed. Probe: deno task mcp list · deno task snap vote`);
