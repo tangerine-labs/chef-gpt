@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>chef-gpt · Fjord</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Kalam:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --desk: #e4e9ec;
+        --paper: #f2f5f7;
+        --paper-2: #f8fafb;
+        --grid: #d5dde3;
+        --rule: #b3bfc8;
+        --rule-strong: #1f2d3d;
+        --print: #1f2d3d;
+        --print-muted: #5e6f7e;
+        --ink: #1f2d3d;
+        --ink-red: #d8604a;
+        --note-fog: #dfe8ef;
+        --note-ice: #e6f1f5;
+        --note-sand: #f1e9dc;
+        --note-ink: #1f2d3d;
+        --washi-a: #2e4459;
+        --washi-b: #bcd6e6;
+        --washi-c: #6f8fa8;
+        --washi-ground: rgba(255, 255, 255, 0.55);
+        --shadow: rgba(20, 34, 48, 0.16);
+        --focus: #1f2d3d;
+        --label: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+        --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+        --pen: "Kalam", "Bradley Hand", "Segoe Print", cursive;
+        --t-s: #ffd700;
+        --t-a: #ef4444;
+        --t-b: #f97316;
+        --t-c: #eab308;
+        --t-d: #22c55e;
+        --t-f: #3b82f6;
+        --t-g: #6b7280;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --desk: #121a22;
+          --paper: #1e2830;
+          --paper-2: #243039;
+          --grid: #2c3842;
+          --rule: #3d4c58;
+          --rule-strong: #e6edf2;
+          --print: #e6edf2;
+          --print-muted: #93a3b1;
+          --ink: #e6edf2;
+          --ink-red: #f28b78;
+          --note-fog: #a9bcc9;
+          --note-ice: #b7d0da;
+          --note-sand: #cfc4b0;
+          --note-ink: #16212b;
+          --washi-a: #9fb6c8;
+          --washi-b: #6f8fa8;
+          --washi-c: #4c6a82;
+          --washi-ground: rgba(255, 255, 255, 0.14);
+          --shadow: rgba(0, 0, 0, 0.5);
+          --focus: #ffd700;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        overflow-x: clip;
+      }
+      body {
+        margin: 0;
+        background: var(--desk);
+        color: var(--print);
+        font: 16px/1.5 var(--body);
+        -webkit-font-smoothing: antialiased;
+      }
+      .desk {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 40px 24px 72px;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px 24px;
+        border-bottom: 2px solid var(--rule-strong);
+        padding-bottom: 10px;
+        margin-bottom: 8px;
+      }
+      header h1 {
+        margin: 0;
+        font: 700 22px/1 var(--label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      header p {
+        margin: 0;
+        min-width: 0;
+        color: var(--print-muted);
+        font-size: 15px;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+        margin-top: 28px;
+      }
+      .panel {
+        min-width: 0;
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+      .panel > .lab {
+        font: 600 12px/1 var(--label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+      .panel > .lab b {
+        color: var(--print);
+        font-weight: 700;
+      }
+      .wide {
+        grid-column: 1 / -1;
+      }
+
+      /* ── paper ─────────────────────────────────────────────── */
+      .sheet {
+        position: relative;
+        background:
+          linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 20px 20px,
+          linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 20px 20px,
+          var(--paper);
+        box-shadow: 0 1px 0 var(--rule), 0 10px 24px var(--shadow);
+        padding: 18px;
+        min-width: 0;
+      }
+      .print {
+        font: 600 12px/1 var(--label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .pen {
+        font: 400 18px/1.15 var(--pen);
+        color: var(--ink);
+      }
+      .pen.red {
+        color: var(--ink-red);
+      }
+      .strike {
+        text-decoration: line-through;
+        text-decoration-color: var(--ink-red);
+        text-decoration-thickness: 2px;
+      }
+
+      /* ── sticky notes ──────────────────────────────────────── */
+      .note {
+        position: relative;
+        width: 100%;
+        min-width: 0;
+        padding: 10px 10px 12px;
+        background: var(--note-fog);
+        color: var(--note-ink);
+        box-shadow: 2px 4px 10px var(--shadow);
+        transform: rotate(var(--r, -1.2deg));
+        font: 400 15px/1.15 var(--pen);
+        border-radius: 2px;
+      }
+      .note.ice {
+        background: var(--note-ice);
+      }
+      .note.sand {
+        background: var(--note-sand);
+      }
+      .note small {
+        display: block;
+        margin-top: 6px;
+        font: 600 10px/1 var(--label);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        opacity: 0.7;
+      }
+      /* tape: only on things that stay */
+      .taped::before,
+      .taped-2::before,
+      .taped-2::after {
+        content: "";
+        position: absolute;
+        top: -9px;
+        left: 50%;
+        width: 58px;
+        height: 18px;
+        transform: translateX(-50%) rotate(-3deg);
+        background:
+          repeating-linear-gradient(90deg, var(--washi-a) 0 6px, transparent 6px 12px),
+          var(--washi-ground);
+        opacity: 0.9;
+        box-shadow: 0 1px 2px var(--shadow);
+        z-index: 2;
+      }
+      .taped-2::before {
+        left: 14px;
+        transform: rotate(-8deg);
+      }
+      .taped-2::after {
+        left: auto;
+        right: 14px;
+        transform: rotate(7deg);
+        background: linear-gradient(var(--washi-b), var(--washi-b));
+        opacity: 0.85;
+      }
+      .tray {
+        min-width: 0;
+        border: 1px dashed var(--rule);
+        padding: 14px 12px 10px;
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+      .tray .print {
+        margin-bottom: 2px;
+      }
+
+      /* ── calendar ─────────────────────────────────────────── */
+      .cal-wrap {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+        gap: 18px;
+      }
+      .week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        border: 1.5px solid var(--rule-strong);
+        background: var(--paper-2);
+        min-width: 0;
+      }
+      .day {
+        min-width: 0;
+        min-height: 150px;
+        padding: 8px 6px 10px;
+        border-right: 1px solid var(--rule);
+        display: grid;
+        grid-template-rows: auto 1fr;
+        gap: 10px;
+      }
+      .day:last-child {
+        border-right: 0;
+      }
+      .day .head {
+        border-bottom: 1px solid var(--rule-strong);
+        padding-bottom: 4px;
+      }
+      .day .head b {
+        display: block;
+        font: 700 22px/1 var(--label);
+        color: var(--print);
+        font-variant-numeric: tabular-nums;
+        margin-top: 2px;
+      }
+      .day .note {
+        font-size: 13px;
+        padding: 8px 7px 10px;
+      }
+
+      /* ── tiers ─────────────────────────────────────────────── */
+      .tiers {
+        border: 1.5px solid var(--rule-strong);
+        background: var(--paper-2);
+      }
+      .tier {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        min-height: 54px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .tier:last-child {
+        border-bottom: 0;
+      }
+      .tier .mark {
+        display: grid;
+        place-items: center;
+        font: 700 18px/1 var(--label);
+        color: #111;
+        border-right: 1px solid var(--rule);
+      }
+      .tier .slot {
+        min-width: 0;
+        display: flex;
+        gap: 10px;
+        padding: 8px 10px;
+        align-items: center;
+      }
+      .tier .note {
+        width: min(100%, 220px);
+        font-size: 13.5px;
+        padding: 7px 9px 8px;
+      }
+      .tray.row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 14px;
+      }
+      .tray.row .print {
+        grid-column: 1 / -1;
+      }
+
+      /* ── index card ────────────────────────────────────────── */
+      .card {
+        position: relative;
+        background: var(--paper-2);
+        color: var(--print);
+        border: 1px solid var(--rule);
+        box-shadow: 0 6px 16px var(--shadow);
+        padding: 0 16px 16px;
+        min-width: 0;
+        background-image: repeating-linear-gradient(
+          transparent 0 27px,
+          var(--grid) 27px 28px
+        );
+        background-position: 0 44px;
+      }
+      .card .top {
+        border-bottom: 2px solid var(--ink-red);
+        padding: 14px 0 6px;
+        font: 700 24px/1.05 var(--label);
+        min-width: 0;
+      }
+      .card .stamp {
+        margin: 6px 0 10px;
+      }
+      .card ol,
+      .card ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .card li {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        line-height: 28px;
+        min-width: 0;
+      }
+      .card li b {
+        font-weight: 500;
+        font-variant-numeric: tabular-nums;
+        color: var(--print-muted);
+      }
+      .card ol {
+        counter-reset: step;
+        margin-top: 10px;
+      }
+      .card ol li {
+        grid-template-columns: 22px minmax(0, 1fr);
+        counter-increment: step;
+      }
+      .card ol li::before {
+        content: counter(step);
+        font: 700 14px/28px var(--label);
+        color: var(--ink-red);
+      }
+
+      /* ── notepad ───────────────────────────────────────────── */
+      .pad {
+        position: relative;
+        background: var(--paper-2);
+        box-shadow: 0 6px 16px var(--shadow);
+        padding: 26px 16px 24px;
+        min-width: 0;
+        max-width: 340px;
+        background-image: repeating-linear-gradient(
+          transparent 0 31px,
+          var(--grid) 31px 32px
+        );
+        background-position: 0 58px;
+        clip-path: polygon(
+          0 0,
+          100% 0,
+          100% 96%,
+          94% 100%,
+          88% 96%,
+          80% 100%,
+          72% 96%,
+          64% 100%,
+          56% 96%,
+          48% 100%,
+          40% 96%,
+          32% 100%,
+          24% 96%,
+          16% 100%,
+          8% 96%,
+          0 100%
+        );
+      }
+      .pad .spiral {
+        position: absolute;
+        top: 6px;
+        left: 12px;
+        right: 12px;
+        height: 10px;
+        background: radial-gradient(circle, var(--desk) 3px, transparent 3.5px) 0 0 / 22px 10px repeat-x;
+      }
+      .pad h3 {
+        margin: 0 0 6px;
+        font: 700 20px/32px var(--label);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .pad ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .pad li {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        gap: 8px;
+        line-height: 32px;
+        min-width: 0;
+        font-size: 16px;
+      }
+      .pad .tick {
+        font: 700 20px/32px var(--pen);
+        color: var(--ink);
+      }
+      .pad li.done span {
+        text-decoration: line-through;
+        text-decoration-color: var(--ink);
+        color: var(--print-muted);
+      }
+      .pad .from {
+        font: 400 14px/1 var(--pen);
+        color: var(--ink);
+        margin-left: 8px;
+      }
+
+      /* ── samples ───────────────────────────────────────────── */
+      .samples {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .samples .sheet {
+        display: grid;
+        gap: 14px;
+        align-content: start;
+      }
+      .washi {
+        height: 20px;
+        width: 70%;
+        background:
+          repeating-linear-gradient(90deg, var(--washi-a) 0 6px, transparent 6px 12px),
+          var(--washi-ground);
+        box-shadow: 0 1px 2px var(--shadow);
+        transform: rotate(-1.5deg);
+      }
+      .washi.b {
+        background: linear-gradient(var(--washi-b), var(--washi-b));
+        opacity: 0.85;
+        transform: rotate(1deg);
+      }
+      .washi.c {
+        background:
+          repeating-linear-gradient(90deg, var(--washi-c) 0 6px, transparent 6px 12px),
+          var(--washi-ground);
+        transform: rotate(-0.5deg);
+      }
+      .pair {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        padding-top: 12px;
+      }
+      .pair .print {
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      /* ── tokens ────────────────────────────────────────────── */
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 10px;
+      }
+      .sw {
+        min-width: 0;
+        border: 1px solid var(--rule);
+      }
+      .sw i {
+        display: block;
+        height: 44px;
+      }
+      .sw b {
+        display: block;
+        padding: 6px 8px 2px;
+        font: 600 11px/1.2 var(--label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .sw span {
+        display: block;
+        padding: 0 8px 6px;
+        font: 12px/1.2 var(--body);
+        color: var(--print-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .type {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .type div {
+        display: grid;
+        grid-template-columns: 120px minmax(0, 1fr);
+        gap: 12px;
+        align-items: baseline;
+        border-top: 1px solid var(--rule);
+        padding-top: 8px;
+        min-width: 0;
+      }
+      .type .big-print {
+        font: 700 30px/1 var(--label);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .type .big-pen {
+        font: 400 26px/1 var(--pen);
+        color: var(--ink);
+      }
+
+      @media (max-width: 720px) {
+        .board {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .cal-wrap {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .week {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .day {
+          min-height: 0;
+          grid-template-columns: 64px minmax(0, 1fr);
+          grid-template-rows: none;
+          border-right: 0;
+          border-bottom: 1px solid var(--rule);
+          align-items: center;
+        }
+        .day .head {
+          border-bottom: 0;
+        }
+        .samples,
+        .pair {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .type div {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="desk">
+      <header>
+        <h1>chef-gpt · materials · Fjord</h1>
+        <p>The Nordic board gone cool and coastal: squared paper, a navy fineliner, notes in fog, ice and sand, tape in navy stripes. A kitchen window over the fjord.</p>
+      </header>
+
+      <div class="board">
+        <!-- 1 · calendar -->
+        <section class="panel wide">
+          <div class="lab"><b>1 · Sheet</b> · the calendar</div>
+          <div class="sheet">
+            <div class="cal-wrap">
+              <div class="week">
+                <div class="day"><div class="head print">Mon <b>31</b></div><div></div></div>
+                <div class="day">
+                  <div class="head print">Tue <b>01</b></div>
+                  <div class="note taped" style="--r: -1.5deg">Hurtig chorizo- og harissaspaghetti</div>
+                </div>
+                <div class="day">
+                  <div class="head print">Wed <b>02</b></div>
+                  <div class="pen">eating out</div>
+                </div>
+                <div class="day">
+                  <div class="head print">Thu <b>03</b></div>
+                  <div class="note ice taped" style="--r: 1deg">Asiatisk avocado- og tofubowl</div>
+                </div>
+                <div class="day"><div class="head print">Fri <b>04</b></div><div></div></div>
+                <div class="day"><div class="head print">Sat <b>05</b></div><div></div></div>
+                <div class="day"><div class="head print">Sun <b>06</b></div><div></div></div>
+              </div>
+              <div class="tray">
+                <div class="print">Tray · 1 left</div>
+                <div class="note sand" style="--r: 2deg">Kalkun med spaghetti…<small>6 p · Björn Emma Noah</small></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2 · round -->
+        <section class="panel">
+          <div class="lab"><b>2 · Sheet</b> · a round</div>
+          <div class="sheet">
+            <div class="tiers">
+              <div class="tier"><div class="mark" style="background: var(--t-s)">S</div><div class="slot"><div class="note taped" style="--r: -1deg">Hurtig chorizo- og harissaspaghetti</div></div></div>
+              <div class="tier"><div class="mark" style="background: var(--t-a)">A</div><div class="slot"></div></div>
+              <div class="tier"><div class="mark" style="background: var(--t-b)">B</div><div class="slot"><div class="note ice taped" style="--r: 1.2deg">Asiatisk avocado- og tofubowl</div></div></div>
+              <div class="tier"><div class="mark" style="background: var(--t-c)">C</div><div class="slot"></div></div>
+              <div class="tier"><div class="mark" style="background: var(--t-d)">D</div><div class="slot"></div></div>
+              <div class="tier"><div class="mark" style="background: var(--t-f)">F</div><div class="slot"></div></div>
+              <div class="tier"><div class="mark" style="background: var(--t-g)">🗑</div><div class="slot"></div></div>
+            </div>
+            <div class="tray row">
+              <div class="print">Tray · Emma is ranking</div>
+              <div class="note sand" style="--r: -2deg">Kalkun med spaghetti…</div>
+              <div class="note" style="--r: 1.5deg">Pandekager</div>
+            </div>
+            <p class="print" style="margin: 14px 0 0">2 of 4 rated · results hidden until the round closes</p>
+          </div>
+        </section>
+
+        <!-- 3 · index card -->
+        <section class="panel">
+          <div class="lab"><b>3 · Index card</b> · a recipe in full</div>
+          <div class="card taped-2">
+            <div class="top">Hurtig chorizo- og harissaspaghetti</div>
+            <div class="stamp print">20 min · Italian · HelloFresh</div>
+            <ul>
+              <li><span>Spaghetti</span><b>400 g</b></li>
+              <li><span>Chorizo, ternet</span><b>120 g</b></li>
+              <li><span>Harissa</span><b>4 g</b></li>
+              <li><span>Creme fraiche</span><b>1 bæger</b></li>
+              <li><span>Løg</span><b>1</b></li>
+            </ul>
+            <ol>
+              <li>Boil the spaghetti; keep a cup of the water.</li>
+              <li>Fry the chorizo until the fat runs, add the onion.</li>
+              <li>Stir in harissa and creme fraiche, loosen with pasta water.</li>
+              <li>Toss with the spaghetti and serve.</li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- 4 · notepad -->
+        <section class="panel">
+          <div class="lab"><b>4 · Notepad sheet</b> · the shopping list</div>
+          <div class="pad taped">
+            <div class="spiral"></div>
+            <h3>Shopping list</h3>
+            <ul>
+              <li><span class="tick"></span><span>1 l Milk</span></li>
+              <li class="done"><span class="tick">✓</span><span>12 Eggs</span></li>
+              <li><span class="tick"></span><span>120 g Chorizo, ternet <em class="from">chorizo pasta</em></span></li>
+              <li class="done"><span class="tick">✓</span><span>4 g Harissa <em class="from">chorizo pasta</em></span></li>
+              <li><span class="tick"></span><span>1 bæger creme fraiche <em class="from">kalkun</em></span></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 5 · pen and tape -->
+        <section class="panel">
+          <div class="lab"><b>5 · Pen and tape</b></div>
+          <div class="samples">
+            <div class="sheet">
+              <span class="print">Navy pen · what a person said</span>
+              <div class="pen">Tuesday is the chorizo pasta</div>
+              <span class="print">Coral pen · a correction, a question</span>
+              <div class="pen"><span class="strike">Pandekager</span> <span class="red">eating out</span></div>
+              <div class="pen red">Which one: chorizo pasta or kalkun?</div>
+            </div>
+            <div class="sheet">
+              <span class="print">Washi · navy stripes, a pale-blue band</span>
+              <div class="washi"></div>
+              <div class="washi b"></div>
+              <div class="washi c"></div>
+              <div class="pair">
+                <div><span class="print">Loose · still to do</span><div class="note sand" style="--r: -2deg">Pandekager</div></div>
+                <div><span class="print">Taped · this stays</span><div class="note sand taped" style="--r: 1deg">Pandekager</div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6 · tokens and type -->
+        <section class="panel">
+          <div class="lab"><b>6 · Tokens and type</b></div>
+          <div class="sheet">
+            <div class="swatches">
+              <div class="sw"><i style="background: #e4e9ec"></i><b>desk</b><span>#e4e9ec</span></div>
+              <div class="sw"><i style="background: #f2f5f7"></i><b>paper</b><span>#f2f5f7</span></div>
+              <div class="sw"><i style="background: #d5dde3"></i><b>grid</b><span>#d5dde3</span></div>
+              <div class="sw"><i style="background: #1f2d3d"></i><b>ink navy</b><span>#1f2d3d</span></div>
+              <div class="sw"><i style="background: #d8604a"></i><b>ink coral</b><span>#d8604a</span></div>
+              <div class="sw"><i style="background: #dfe8ef"></i><b>note fog</b><span>#dfe8ef</span></div>
+              <div class="sw"><i style="background: #e6f1f5"></i><b>note ice</b><span>#e6f1f5</span></div>
+              <div class="sw"><i style="background: #f1e9dc"></i><b>note sand</b><span>#f1e9dc</span></div>
+              <div class="sw"><i style="background: #2e4459"></i><b>washi navy</b><span>#2e4459</span></div>
+              <div class="sw"><i style="background: #bcd6e6"></i><b>washi band</b><span>#bcd6e6</span></div>
+              <div class="sw"><i style="background: #121a22"></i><b>desk dark</b><span>#121a22</span></div>
+              <div class="sw"><i style="background: #1e2830"></i><b>paper dark</b><span>#1e2830</span></div>
+            </div>
+            <div class="type">
+              <div><span class="print">Print · IBM Plex Sans Condensed</span><span class="big-print">Week 36 · Mon 31</span></div>
+              <div><span class="print">Body · IBM Plex Sans</span><span>Your household ranks the candidates, the week fills itself from the ranked list.</span></div>
+              <div><span class="print">Pen · Kalam</span><span class="big-pen">Tuesday is the chorizo pasta</span></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,1226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>chef-gpt · Scoreboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── tokens: the un-stamped default is the arena at night ───────────── */
+      :root {
+        --bg: #0b0b0d;
+        --bg-2: #141417;
+        --panel: #17171b;
+        --panel-2: #1f1f24;
+        --fg: #f5f1e6;
+        --muted: #a9a49a;
+        --line: #2b2b31;
+        --accent: #ffcc00;
+        --accent-fg: #0b0b0d;
+        --tile: #101013;
+        --tile-face: #f5f1e6;
+        --tile-edge: #3a3a42;
+        --danger: #ff5d5d;
+        --dot: rgba(245, 241, 230, 0.06);
+        --tier-s: #ffd700;
+        --tier-a: #ef4444;
+        --tier-b: #f97316;
+        --tier-c: #eab308;
+        --tier-d: #22c55e;
+        --tier-f: #3b82f6;
+        --tier-g: #6b7280;
+        --display: "Bebas Neue", "Impact", "Arial Narrow", sans-serif;
+        --sans: "Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f3efe4;
+          --bg-2: #e9e4d6;
+          --panel: #fbf9f3;
+          --panel-2: #f0ece1;
+          --fg: #111114;
+          --muted: #5f5b53;
+          --line: #d8d2c2;
+          --accent: #ffcc00;
+          --accent-fg: #111114;
+          --tile: #111114;
+          --tile-face: #f5f1e6;
+          --tile-edge: #33333a;
+          --danger: #b3261e;
+          --dot: rgba(17, 17, 20, 0.07);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        overflow-x: clip;
+      }
+      body {
+        margin: 0;
+        background-color: var(--bg);
+        background-image: radial-gradient(var(--dot) 1px, transparent 1.2px);
+        background-size: 14px 14px;
+        color: var(--fg);
+        font: 17px/1.55 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: inherit;
+      }
+      section {
+        overflow-x: clip;
+      }
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 24px;
+        min-width: 0;
+      }
+      h1,
+      h2,
+      h3 {
+        margin: 0;
+        text-wrap: balance;
+      }
+      h2 {
+        font: 400 clamp(38px, 5vw, 64px) / 0.95 var(--display);
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+      }
+      h3 {
+        font: 400 26px/1 var(--display);
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      p {
+        margin: 0 0 14px;
+        max-width: 62ch;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font: 600 12px/1 var(--sans);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 18px;
+      }
+      .eyebrow::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        background: var(--accent);
+        box-shadow: 0 0 10px var(--accent);
+      }
+      .num {
+        font-family: var(--display);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── header ────────────────────────────────────────────────────────── */
+      header {
+        border-bottom: 1px solid var(--line);
+        background: var(--bg-2);
+      }
+      header .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        height: 60px;
+      }
+      .brand {
+        font: 400 28px/1 var(--display);
+        letter-spacing: 0.06em;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+      .brand i {
+        width: 26px;
+        height: 18px;
+        background: var(--accent);
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%);
+      }
+      header nav {
+        display: flex;
+        gap: 22px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--muted);
+        min-width: 0;
+      }
+      header nav a {
+        text-decoration: none;
+      }
+      header nav a:hover,
+      header nav a:focus-visible {
+        color: var(--fg);
+      }
+      @media (max-width: 720px) {
+        header nav {
+          display: none;
+        }
+      }
+
+      /* ── hero: the board ───────────────────────────────────────────────── */
+      .hero {
+        padding: 64px 0 80px;
+      }
+      .hero .wrap {
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+        gap: 48px;
+        align-items: start;
+      }
+      .hero h1 {
+        font: 400 clamp(56px, 8vw, 112px) / 0.9 var(--display);
+        text-transform: uppercase;
+        letter-spacing: 0.005em;
+      }
+      .hero h1 em {
+        font-style: normal;
+        color: var(--accent);
+      }
+      .role {
+        margin: 22px 0 10px;
+        font: 600 15px/1.3 var(--sans);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .lede {
+        font-size: 18px;
+        margin-top: 12px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        align-items: center;
+        margin-top: 26px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 48px;
+        padding: 0 22px;
+        border: 2px solid var(--fg);
+        background: transparent;
+        color: var(--fg);
+        font: 400 20px/1 var(--display);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-fg);
+        box-shadow: 0 0 0 4px rgba(255, 204, 0, 0.15);
+      }
+      .btn:focus-visible,
+      .input:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .trust {
+        margin-top: 22px;
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .trust span {
+        display: block;
+      }
+
+      .board {
+        border: 3px solid var(--tile-edge);
+        background: var(--tile);
+        color: var(--tile-face);
+        padding: 18px;
+        box-shadow:
+          0 0 0 1px #000,
+          0 30px 60px rgba(0, 0, 0, 0.35);
+        min-width: 0;
+      }
+      .board .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        border-bottom: 2px solid var(--tile-edge);
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+        font: 400 20px/1 var(--display);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--accent);
+        min-width: 0;
+      }
+      .board .head small {
+        font: 500 11px/1 var(--sans);
+        letter-spacing: 0.16em;
+        color: #a9a49a;
+      }
+      .line {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr) auto auto;
+        gap: 10px 14px;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--tile-edge);
+        min-width: 0;
+      }
+      .line:last-of-type {
+        border-bottom: 0;
+      }
+      .line .rank {
+        font: 400 34px/1 var(--display);
+        color: #a9a49a;
+      }
+      .line .name {
+        min-width: 0;
+        font-weight: 600;
+        font-size: 15px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+      .line .name small {
+        display: block;
+        font-weight: 400;
+        font-size: 12px;
+        color: #a9a49a;
+        margin-top: 2px;
+      }
+      .tiles {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        min-width: 0;
+      }
+      .tile {
+        width: 26px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        font: 400 18px/1 var(--display);
+        color: #111114;
+        background: var(--tile-face);
+        border-radius: 3px;
+        box-shadow:
+          inset 0 -3px 0 rgba(0, 0, 0, 0.25),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      }
+      .tile.s {
+        background: var(--tier-s);
+      }
+      .tile.a {
+        background: var(--tier-a);
+      }
+      .tile.b {
+        background: var(--tier-b);
+      }
+      .tile.c {
+        background: var(--tier-c);
+      }
+      .tile.d {
+        background: var(--tier-d);
+      }
+      .tile.f {
+        background: var(--tier-f);
+      }
+      .tile.g {
+        background: var(--tier-g);
+      }
+      .tile.off {
+        background: #26262c;
+        color: #6b6b74;
+        box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+      }
+      .pts {
+        font: 400 52px/1 var(--display);
+        font-variant-numeric: tabular-nums;
+        color: var(--accent);
+        text-shadow: 0 0 18px rgba(255, 204, 0, 0.35);
+        min-width: 2ch;
+        text-align: right;
+      }
+      .board .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 16px;
+        margin-top: 12px;
+        font: 500 11px/1.4 var(--sans);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #a9a49a;
+      }
+      .verdict {
+        margin-top: 16px;
+        border: 2px solid var(--accent);
+        background: var(--accent);
+        color: var(--accent-fg);
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        font: 400 26px/1 var(--display);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .verdict small {
+        font: 500 12px/1.3 var(--sans);
+        letter-spacing: 0.05em;
+        text-transform: none;
+      }
+
+      /* ── sections ──────────────────────────────────────────────────────── */
+      .section {
+        padding: 72px 0;
+        border-top: 1px solid var(--line);
+      }
+      .section .intro {
+        max-width: 62ch;
+        margin: 18px 0 32px;
+        color: var(--muted);
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+      }
+      .step {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-top: 4px solid var(--accent);
+        padding: 20px;
+        min-width: 0;
+      }
+      .step .num {
+        font-size: 56px;
+        line-height: 0.9;
+        color: var(--accent);
+        margin-bottom: 10px;
+      }
+      .step p {
+        margin: 8px 0 0;
+        font-size: 15px;
+        color: var(--muted);
+      }
+      .step p b {
+        color: var(--fg);
+      }
+      .step q {
+        display: block;
+        margin-top: 10px;
+        font-size: 14px;
+        color: var(--fg);
+        quotes: "“" "”";
+      }
+      @media (max-width: 900px) {
+        .steps {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 520px) {
+        .steps {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      /* ── app facsimiles ────────────────────────────────────────────────── */
+      .apps {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 20px;
+      }
+      @media (max-width: 720px) {
+        .apps {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .app {
+        min-width: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+      }
+      .app > * {
+        min-width: 0;
+      }
+      .app .cap b {
+        font: 400 22px/1 var(--display);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-right: 8px;
+      }
+      .app .cap {
+        font-size: 14px;
+        color: var(--muted);
+        margin: 0;
+      }
+      .fx {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        padding: 14px;
+        font-size: 14px;
+        color: var(--fg);
+      }
+      .fx .h {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-weight: 600;
+        font-size: 15px;
+        margin-bottom: 10px;
+        min-width: 0;
+      }
+      .fx .h span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .fx .h small {
+        font: 500 11px/1.6 var(--sans);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        flex: none;
+      }
+      .fx .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        min-width: 0;
+      }
+      .fx .row:last-child {
+        margin-bottom: 0;
+      }
+      .fx .grow {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .fx .meta {
+        color: var(--muted);
+        font-size: 12px;
+        flex: none;
+      }
+      .fx .dash {
+        color: var(--muted);
+      }
+      .fx .day {
+        flex: 0 0 40px;
+        font: 400 16px/1 var(--display);
+        letter-spacing: 0.05em;
+      }
+      .fx .day span {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+      .fx .mini {
+        flex: none;
+        border: 1px solid var(--line);
+        padding: 4px 8px;
+        font: 400 14px/1 var(--display);
+        letter-spacing: 0.08em;
+        background: var(--panel);
+      }
+      .fx .mini.on {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-fg);
+      }
+      .fx .input {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid var(--line);
+        background: var(--bg);
+        color: var(--muted);
+        padding: 8px 10px;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .fx .pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 8px 0 10px;
+      }
+      .fx .pill {
+        border: 1px solid var(--line);
+        padding: 4px 10px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .fx .pill.on {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-fg);
+      }
+      .fx .cb {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--muted);
+      }
+      .fx .cb.on {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .fx .done {
+        text-decoration: line-through;
+        color: var(--muted);
+      }
+      .fx .tiles .tile {
+        width: 22px;
+        height: 24px;
+        font-size: 15px;
+      }
+      .fx .tiles {
+        flex: none;
+      }
+      @media (max-width: 720px) {
+        .fx .row.vote {
+          flex-wrap: wrap;
+        }
+        .fx .row.vote .grow {
+          flex-basis: 100%;
+          white-space: normal;
+        }
+      }
+
+      /* ── prompts ───────────────────────────────────────────────────────── */
+      .two {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 40px;
+        align-items: start;
+      }
+      @media (max-width: 800px) {
+        .two {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .two > * {
+        min-width: 0;
+      }
+      .prompts {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        border-top: 2px solid var(--line);
+      }
+      .prompts li {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 12px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--line);
+        min-width: 0;
+      }
+      .prompts .plus {
+        width: 34px;
+        height: 34px;
+        display: grid;
+        place-items: center;
+        border: 2px solid var(--accent);
+        color: var(--accent);
+        font: 400 24px/1 var(--display);
+      }
+      .prompts b {
+        display: block;
+        font-size: 16px;
+      }
+      .prompts span {
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      /* ── members / roster ─────────────────────────────────────────────── */
+      .roster {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 20px;
+      }
+      @media (max-width: 520px) {
+        .roster {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .player {
+        background: var(--tile);
+        color: var(--tile-face);
+        border: 2px solid var(--tile-edge);
+        padding: 14px;
+        min-width: 0;
+      }
+      .player .n {
+        font: 400 30px/1 var(--display);
+        letter-spacing: 0.06em;
+      }
+      .player .s {
+        font-size: 12px;
+        color: #a9a49a;
+        margin-top: 4px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .player .s.on {
+        color: var(--accent);
+      }
+
+      /* ── setup + sign in ──────────────────────────────────────────────── */
+      .setup {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: s;
+      }
+      .setup li {
+        counter-increment: s;
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr);
+        gap: 14px;
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+        min-width: 0;
+      }
+      .setup li::before {
+        content: counter(s);
+        font: 400 52px/0.9 var(--display);
+        color: var(--accent);
+      }
+      .setup b {
+        font-size: 17px;
+      }
+      .setup p {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 15px;
+      }
+      .note {
+        margin-top: 18px;
+        color: var(--muted);
+        font-size: 15px;
+      }
+
+      .signin {
+        background: var(--tile);
+        color: var(--tile-face);
+        border: 3px solid var(--tile-edge);
+        padding: 22px;
+        display: grid;
+        gap: 14px;
+        min-width: 0;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+      }
+      .signin .tag {
+        font: 500 11px/1 var(--sans);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .signin h3 {
+        font-size: 36px;
+      }
+      .signin .sub {
+        color: #a9a49a;
+        font-size: 14px;
+        margin: -6px 0 0;
+      }
+      .signin .btn {
+        width: 100%;
+        border-color: var(--tile-face);
+        color: var(--tile-face);
+      }
+      .signin .btn.primary {
+        border-color: var(--accent);
+        color: var(--accent-fg);
+      }
+      .signin .or {
+        text-align: center;
+        font: 500 11px/1 var(--sans);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #a9a49a;
+        margin: 2px 0;
+      }
+      .input {
+        width: 100%;
+        min-width: 0;
+        padding: 12px 14px;
+        border: 2px solid var(--tile-edge);
+        background: #0b0b0d;
+        color: var(--tile-face);
+        font: inherit;
+      }
+      .input::placeholder {
+        color: #6b6b74;
+      }
+      .signin .invite {
+        font-family: var(--display);
+        font-size: 20px;
+        letter-spacing: 0.18em;
+      }
+
+      /* ── run your own ──────────────────────────────────────────────────── */
+      .facts {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0 0;
+        display: grid;
+        gap: 10px;
+      }
+      .facts li {
+        display: grid;
+        grid-template-columns: 14px minmax(0, 1fr);
+        gap: 12px;
+        align-items: start;
+        padding: 12px 14px;
+        background: var(--panel);
+        border-left: 4px solid var(--accent);
+        font-size: 15px;
+      }
+      .facts li::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        margin-top: 6px;
+        background: var(--accent);
+      }
+      .repo {
+        display: inline-block;
+        margin-top: 20px;
+        font: 400 22px/1 var(--display);
+        letter-spacing: 0.06em;
+        text-underline-offset: 6px;
+        text-decoration-color: var(--accent);
+      }
+      code {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 0.9em;
+        background: var(--panel-2);
+        padding: 1px 5px;
+      }
+
+      /* ── faq ───────────────────────────────────────────────────────────── */
+      .faq {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px 40px;
+      }
+      @media (max-width: 720px) {
+        .faq {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      .faq div {
+        min-width: 0;
+      }
+      .faq h3 {
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+      .faq p {
+        color: var(--muted);
+        font-size: 15px;
+        margin: 0;
+      }
+
+      /* ── footer ────────────────────────────────────────────────────────── */
+      footer {
+        border-top: 1px solid var(--line);
+        background: var(--bg-2);
+        padding: 28px 0;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      footer .wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 22px;
+        align-items: center;
+      }
+      footer .brand {
+        font-size: 22px;
+        color: var(--fg);
+      }
+      footer a {
+        text-decoration: none;
+      }
+
+      @media (max-width: 900px) {
+        .hero .wrap {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .pts {
+          animation: flicker 6s ease-in-out infinite;
+        }
+        @keyframes flicker {
+          0%,
+          92%,
+          100% {
+            opacity: 1;
+          }
+          95% {
+            opacity: 0.75;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="wrap">
+        <a class="brand" href="#"><i></i>chef-gpt</a>
+        <nav>
+          <a href="#how">How it works</a>
+          <a href="#apps">The apps</a>
+          <a href="#ask">Or just ask</a>
+          <a href="#setup">Set up</a>
+          <a href="#run">Run your own</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- ── hero: the board ─────────────────────────────────────────────── -->
+    <section class="hero">
+      <div class="wrap">
+        <div>
+          <div class="eyebrow">Household meal planning · MCP Apps</div>
+          <h1>Vote on dinners, plan the week, keep the <em>shopping list.</em></h1>
+          <p class="role">A referee the whole household accepts.</p>
+          <p class="lede">
+            chef-gpt is household meal planning inside Claude Desktop. Your household ranks the candidates, the week
+            fills itself from the ranked list, and the ingredients land on one shopping list. Click in the apps, or
+            just ask.
+          </p>
+          <div class="actions">
+            <a class="btn primary" href="#setup">Sign in and add the connector</a>
+            <a class="btn" href="#how">See how it works</a>
+          </div>
+          <p class="trust">
+            <span>Works with Claude Desktop custom connectors</span>
+            <span>Sign in with Google or a magic link</span>
+            <span>One household, shared by everyone in it</span>
+          </p>
+        </div>
+
+        <div class="board" aria-label="Ranked list, week 37">
+          <div class="head">
+            <span>Ranked list · Week 37</span>
+            <small>Round closed · 3 of 3 ranked</small>
+          </div>
+          <div class="line">
+            <span class="rank num">1</span>
+            <span class="name">Hurtig chorizo- og harissaspaghetti<small>HelloFresh · 20 min</small></span>
+            <span class="tiles"><span class="tile s">S</span><span class="tile a">A</span><span class="tile b">B</span></span>
+            <span class="pts num">13</span>
+          </div>
+          <div class="line">
+            <span class="rank num">2</span>
+            <span class="name">Asiatisk avocado- og tofubowl<small>HelloFresh · 25 min</small></span>
+            <span class="tiles"><span class="tile a">A</span><span class="tile s">S</span><span class="tile c">C</span></span>
+            <span class="pts num">11</span>
+          </div>
+          <div class="line">
+            <span class="rank num">3</span>
+            <span class="name">Kalkun med spaghetti, grønne asparges…<small>Aarstiderne · 30 min</small></span>
+            <span class="tiles"><span class="tile b">B</span><span class="tile a">A</span><span class="tile f">F</span></span>
+            <span class="pts num">6</span>
+          </div>
+          <div class="legend">
+            <span>Tiles: Björn · Emma · Noah</span>
+            <span>S 7 · A 6 · B 5 · C 4 · D 3 · F 2 · 🗑 0</span>
+          </div>
+          <div class="verdict">
+            <span>No winner · Choose by hand</span>
+            <small>Ordered by summed tier points</small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── how it works ────────────────────────────────────────────────── -->
+    <section class="section" id="how">
+      <div class="wrap">
+        <div class="eyebrow">Match procedure</div>
+        <h2>Four steps, in the order the household lives them.</h2>
+        <p class="intro">A round is called, everyone ranks, the board fills the week, and the week fills the list.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="num">1</div>
+            <h3>Start a round.</h3>
+            <p>Pick eight candidate dinners from your cookbooks, choose who votes.</p>
+            <q>Start a voting round with eight quick weeknight dinners for everyone.</q>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <h3>Everyone ranks.</h3>
+            <p>
+              Each participant drags every candidate into a tier: S, A, B, C, D, F or GARBAGE. Results stay hidden
+              until the round closes.
+            </p>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <h3>Fill the week.</h3>
+            <p>The ranked list sits next to the week. Tap a dinner, then a day.</p>
+            <q>Tuesday is the chorizo pasta, Wednesday we're eating out.</q>
+          </div>
+          <div class="step">
+            <div class="num">4</div>
+            <h3>Shop once.</h3>
+            <p>
+              Add a recipe's ingredients to the shopping list, check things off in the shop by saying them, clear
+              what you bought.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── the four apps ───────────────────────────────────────────────── -->
+    <section class="section" id="apps">
+      <div class="wrap">
+        <div class="eyebrow">On the board</div>
+        <h2>The four apps.</h2>
+        <p class="intro">
+          Each app is an MCP App: it opens inside the Claude conversation when the matching tool runs, and it is the
+          same data the tools talk to.
+        </p>
+        <div class="apps">
+          <div class="app">
+            <p class="cap"><b>Round builder.</b>Search the cookbooks, collect candidates, choose who votes, start voting.</p>
+            <div class="fx">
+              <div class="h"><span>New round</span><small>start_round</small></div>
+              <div class="row"><span class="input">Search dinners… (e.g. tofu, quick, pasta)</span><span class="mini">Search</span></div>
+              <div class="meta">Candidates (3/10 suggested)</div>
+              <div class="row"><span class="grow">Hurtig chorizo- og harissaspaghetti</span><span class="meta">20 min</span><span class="mini">Remove</span></div>
+              <div class="row"><span class="grow">Asiatisk avocado- og tofubowl</span><span class="meta">25 min</span><span class="mini">Remove</span></div>
+              <div class="row"><span class="grow">Kalkun med spaghetti, grønne asparges…</span><span class="meta">30 min</span><span class="mini">Remove</span></div>
+              <div class="meta">Who votes?</div>
+              <div class="pills"><span class="pill on">Björn</span><span class="pill on">Emma</span><span class="pill on">Noah</span></div>
+              <div class="row"><span class="input">Label (optional, e.g. Week 37)</span><span class="mini on">Start voting</span></div>
+            </div>
+          </div>
+
+          <div class="app">
+            <p class="cap"><b>Vote.</b>Pick your name, place each candidate in a tier. Voting again replaces your earlier ranking.</p>
+            <div class="fx">
+              <div class="h"><span>Emma, rank the dinners (2/3)</span><small>open_voting</small></div>
+              <div class="row vote"><span class="grow">Hurtig chorizo- og harissaspaghetti</span><span class="tiles"><span class="tile s">S</span><span class="tile off">A</span><span class="tile off">B</span><span class="tile off">C</span><span class="tile off">D</span><span class="tile off">F</span><span class="tile off">🗑</span></span></div>
+              <div class="row vote"><span class="grow">Asiatisk avocado- og tofubowl</span><span class="tiles"><span class="tile off">S</span><span class="tile off">A</span><span class="tile b">B</span><span class="tile off">C</span><span class="tile off">D</span><span class="tile off">F</span><span class="tile off">🗑</span></span></div>
+              <div class="row vote"><span class="grow">Kalkun med spaghetti, grønne asparges…</span><span class="tiles"><span class="tile off">S</span><span class="tile off">A</span><span class="tile off">B</span><span class="tile off">C</span><span class="tile off">D</span><span class="tile off">F</span><span class="tile off">🗑</span></span></div>
+              <div class="meta">Results stay hidden until the round closes.</div>
+            </div>
+          </div>
+
+          <div class="app">
+            <p class="cap"><b>Week plan.</b>The week's dinner slots beside the latest ranked list. Place, type free text, clear.</p>
+            <div class="fx">
+              <div class="h"><span>Week of 2026-08-31</span><small>show_week</small></div>
+              <div class="pills"><span class="pill">1. Hurtig chorizo… · 13p</span><span class="pill">2. Asiatisk avocado… · 11p</span><span class="pill">3. Kalkun med… · 6p</span></div>
+              <div class="row"><span class="day">Mon<span>31</span></span><span class="grow dash">—</span><span class="mini">Type</span></div>
+              <div class="row"><span class="day">Tue<span>01</span></span><span class="grow">Hurtig chorizo- og harissaspaghetti</span><span class="mini">Type</span><span class="mini">Clear</span></div>
+              <div class="row"><span class="day">Wed<span>02</span></span><span class="grow">eating out</span><span class="mini">Type</span><span class="mini">Clear</span></div>
+              <div class="row"><span class="day">Thu<span>03</span></span><span class="grow dash">—</span><span class="mini">Type</span></div>
+              <div class="row"><span class="day">Fri<span>04</span></span><span class="grow dash">—</span><span class="mini">Type</span></div>
+              <div class="row"><span class="day">Sat<span>05</span></span><span class="grow dash">—</span><span class="mini">Type</span></div>
+              <div class="row"><span class="day">Sun<span>06</span></span><span class="grow dash">—</span><span class="mini">Type</span></div>
+            </div>
+          </div>
+
+          <div class="app">
+            <p class="cap"><b>Shopping list.</b>One running list with check-off, quantities, and the recipe each item came from.</p>
+            <div class="fx">
+              <div class="h"><span>Shopping list (3)</span><small>show_shopping_list</small></div>
+              <div class="row"><span class="input">Add an item…</span><span class="mini">Add</span></div>
+              <div class="row"><span class="cb"></span><span class="grow">1 l Milk</span></div>
+              <div class="row"><span class="cb on"></span><span class="grow done">12 Eggs</span></div>
+              <div class="row"><span class="cb"></span><span class="grow">1 bæger creme fraiche <span class="meta">· Kalkun med spaghetti, grønne asparges…</span></span></div>
+              <div class="row"><span class="cb"></span><span class="grow">120 g Chorizo, ternet <span class="meta">· Hurtig chorizo- og harissaspaghetti</span></span></div>
+              <div class="row"><span class="cb on"></span><span class="grow done">4 g Harissa-krydderi <span class="meta">· Hurtig chorizo- og harissaspaghetti</span></span></div>
+              <div class="row"><span class="grow" style="text-align: center"><span class="mini">Clear 2 checked</span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── or just ask ─────────────────────────────────────────────────── -->
+    <section class="section" id="ask">
+      <div class="wrap">
+        <div class="eyebrow">Call the play</div>
+        <div class="two">
+          <div>
+            <h2>Or just ask.</h2>
+            <p class="intro">Five prompts appear in Claude Desktop's "+" menu. Each one is a routine the household already has.</p>
+            <p>
+              And anything in between: tools take names, not ids. "Retire the tofu bowl", "add milk", "who still
+              needs to vote?" A name that matches two recipes comes back as a question, never a guess.
+            </p>
+          </div>
+          <ul class="prompts">
+            <li><span class="plus">+</span><div><b>Plan the week.</b><span>Fill the week's dinners from the latest ranked list, then offer to shop for them.</span></div></li>
+            <li><span class="plus">+</span><div><b>Start a voting round.</b><span>Put together a round of candidate dinners and open voting.</span></div></li>
+            <li><span class="plus">+</span><div><b>What's for dinner tonight?</b><span>Tonight's plan, its recipe, and what is missing from the shopping list.</span></div></li>
+            <li><span class="plus">+</span><div><b>Shopping run.</b><span>Read the list grouped by recipe, add what I dictate, clear what I bought.</span></div></li>
+            <li><span class="plus">+</span><div><b>Set up the household.</b><span>Add the people who live here and invite the adults to connect their own Claude.</span></div></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── kids vote too ───────────────────────────────────────────────── -->
+    <section class="section" id="kids">
+      <div class="wrap">
+        <div class="eyebrow">Roster</div>
+        <div class="two">
+          <div>
+            <h2>Kids vote too.</h2>
+            <p class="intro">
+              A member is a person in the household who can vote. Members do not need to sign in: add the kids by
+              first name and they rank on your screen. Adults who want chef-gpt in their own Claude get an invite, a
+              single-use code that joins them to the household and links them to their member. All signed-in members
+              are equal.
+            </p>
+          </div>
+          <div class="roster">
+            <div class="player"><div class="n">Björn</div><div class="s on">Ranked · own Claude</div></div>
+            <div class="player"><div class="n">Emma</div><div class="s">Ranking · invite sent</div></div>
+            <div class="player"><div class="n">Noah</div><div class="s">Ranking · no account</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── set up ──────────────────────────────────────────────────────── -->
+    <section class="section" id="setup">
+      <div class="wrap">
+        <div class="eyebrow">Player entry</div>
+        <div class="two">
+          <div>
+            <h2>Set up in three steps.</h2>
+            <ol class="setup">
+              <li><div><b>Sign in</b><p>here with Google or a magic link. That creates your household.</p></div></li>
+              <li><div><b>Add the connector</b><p>in Claude Desktop: Settings → Connectors → Add custom connector, and paste the connector URL shown after you sign in.</p></div></li>
+              <li><div><b>Approve.</b><p>Claude brings you back here to authorize it. Then open a new chat and say "set up my household".</p></div></li>
+            </ol>
+            <p class="note">
+              Joining someone's household instead? Open the invite link they sent you and sign in; the invite is
+              redeemed on the way in.
+            </p>
+          </div>
+          <form class="signin" onsubmit="return false">
+            <div class="tag">Player entry</div>
+            <h3>Sign in to chef-gpt</h3>
+            <p class="sub">Your household's dinners, plans and shopping list.</p>
+            <button type="button" class="btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+              Continue with Google
+            </button>
+            <div class="or">or get a magic link</div>
+            <input class="input" type="email" placeholder="you@example.com" aria-label="Email" />
+            <button type="submit" class="btn primary">Email me a link</button>
+            <div class="or">Joining someone's household?</div>
+            <input class="input invite" type="text" placeholder="ABCD-1234" aria-label="Invite code, e.g. ABCD-1234" />
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── run your own ────────────────────────────────────────────────── -->
+    <section class="section" id="run">
+      <div class="wrap">
+        <div class="eyebrow">Home fixture</div>
+        <h2>Run your own.</h2>
+        <p class="intro">
+          chef-gpt is open source. The whole stack is one Supabase project: Postgres with Row Level Security for
+          tenancy, Supabase Auth as the OAuth 2.1 server, and one Deno edge function that serves the MCP endpoint and
+          the app views. The consent page is a static site on GitHub Pages. <code>scripts/setup-supabase.sh</code>
+          walks you through creating the projects; the decisions are written down in <code>docs/adr/</code>.
+        </p>
+        <ul class="facts">
+          <li>A bug in a tool handler cannot read another household's data. The database refuses.</li>
+          <li>Deno is the only toolchain. No Node, no npm.</li>
+          <li>Views are plain React components with a fixture gallery, snapshotted in CI, light and dark.</li>
+        </ul>
+        <a class="repo" href="https://github.com/tangerine-labs/chef-gpt">github.com/tangerine-labs/chef-gpt</a>
+      </div>
+    </section>
+
+    <!-- ── faq ─────────────────────────────────────────────────────────── -->
+    <section class="section" id="faq">
+      <div class="wrap">
+        <div class="eyebrow">Rulebook</div>
+        <h2>FAQ</h2>
+        <div class="faq" style="margin-top: 28px">
+          <div>
+            <h3>Which Claude do I need?</h3>
+            <p>Claude Desktop with custom connectors (a paid plan). The apps render in the desktop app; the tools and prompts also work anywhere the connector is available.</p>
+          </div>
+          <div>
+            <h3>Is there a winner?</h3>
+            <p>No. A closed round gives a ranked list, candidates ordered by summed tier points. People choose from it by hand.</p>
+          </div>
+          <div>
+            <h3>Where are my recipes from?</h3>
+            <p>System cookbooks (Aarstiderne, HelloFresh) are visible to every household and can be switched off. Your household's own cookbook holds recipes you dictate, that Claude writes, or that you copy from a system cookbook to edit.</p>
+          </div>
+          <div>
+            <h3>Where is my data?</h3>
+            <p>In a Postgres database, scoped to your household by Row Level Security. Every request carries your own token; there is no shared service account in the request path.</p>
+          </div>
+          <div>
+            <h3>Can I belong to two households?</h3>
+            <p>Yes. An invite joins you to another household, and that household becomes the one you act in.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <a class="brand" href="#">chef-gpt</a>
+        <span>Household meal planning as MCP Apps</span>
+        <a href="https://github.com/tangerine-labs/chef-gpt">Source on GitHub</a>
+        <a href="#setup">Sign in</a>
+        <span>Built by Tangerine Labs</span>
+      </div>
+    </footer>
+  </body>
+</html>

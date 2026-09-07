@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>chef-gpt · Schoolbook</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700&family=Patrick+Hand&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --desk: #dfe6ee;
+        --paper: #fffdf5;
+        --paper-2: #fffef9;
+        --rule: #cfe0f2;
+        --rule-strong: #a9c6e3;
+        --margin: #e8837a;
+        --print: #2f3640;
+        --print-muted: #6f7885;
+        --ink: #2457c5;
+        --ink-red: #d12f2f;
+        --sticky-pink: #ffb3d9;
+        --sticky-lime: #d4f57a;
+        --sticky-orange: #ffc46b;
+        --sticky-ink: #3a3020;
+        --manila: #f6e7c1;
+        --manila-rule: #d9c48f;
+        --manila-red: #d55b5b;
+        --pad: #ffffff;
+        --pad-rule: #d6dde6;
+        --spiral: #8d97a5;
+        --focus: #2457c5;
+        --shadow: rgba(40, 50, 70, 0.18);
+        --tape: rgba(255, 255, 255, 0.55);
+        --washi-a: repeating-linear-gradient(135deg, #ff8fb1 0 6px, #ffd1e0 6px 12px);
+        --washi-b: radial-gradient(circle at 6px 6px, #2457c5 2.2px, transparent 2.6px) 0 0 / 12px 12px, #cfe4ff;
+        --washi-c: repeating-linear-gradient(90deg, #a5e06a 0 8px, #e6f7c4 8px 10px);
+        --t-s: #ffd700;
+        --t-a: #ef4444;
+        --t-b: #f97316;
+        --t-c: #eab308;
+        --t-d: #22c55e;
+        --t-f: #3b82f6;
+        --t-g: #6b7280;
+        --print-font: "Fredoka", "Trebuchet MS", "Segoe UI", sans-serif;
+        --body-font: "Nunito", "Segoe UI", system-ui, sans-serif;
+        --pen-font: "Patrick Hand", "Bradley Hand", "Comic Sans MS", cursive;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --desk: #1c2a25;
+          --paper: #2a3532;
+          --paper-2: #2f3b37;
+          --rule: #3c4b47;
+          --rule-strong: #4f615c;
+          --margin: #c96e66;
+          --print: #edf1ec;
+          --print-muted: #a3b0aa;
+          --ink: #9dbcff;
+          --ink-red: #ff8a8a;
+          --sticky-pink: #e79cc0;
+          --sticky-lime: #bfe06a;
+          --sticky-orange: #e9b05c;
+          --sticky-ink: #2b2410;
+          --manila: #d9c99c;
+          --manila-rule: #b8a674;
+          --manila-red: #c25050;
+          --pad: #e9ece8;
+          --pad-rule: #c3c9c3;
+          --spiral: #6d7a74;
+          --focus: #ffd700;
+          --shadow: rgba(0, 0, 0, 0.5);
+          --tape: rgba(255, 255, 255, 0.18);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        overflow-x: clip;
+      }
+      body {
+        margin: 0;
+        background: var(--desk);
+        color: var(--print);
+        font: 16px/1.5 var(--body-font);
+        -webkit-font-smoothing: antialiased;
+      }
+      .board {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+        display: grid;
+        gap: 28px;
+      }
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px 24px;
+        min-width: 0;
+      }
+      header h1 {
+        margin: 0;
+        font: 600 22px/1.2 var(--print-font);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        min-width: 0;
+      }
+      header p {
+        margin: 0;
+        color: var(--print-muted);
+        max-width: 60ch;
+        min-width: 0;
+      }
+      .panels {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+      }
+      .panel {
+        min-width: 0;
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+      .panel.wide {
+        grid-column: 1 / -1;
+      }
+      .label {
+        font: 500 13px/1.2 var(--print-font);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+      .label b {
+        color: var(--print);
+        font-weight: 600;
+      }
+
+      /* ── sheet: exercise-book paper ─────────────────────── */
+      .sheet {
+        position: relative;
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 27px,
+            var(--rule) 27px 28px
+          ),
+          var(--paper);
+        box-shadow: 0 2px 10px var(--shadow);
+        padding: 22px 22px 22px 46px;
+        min-width: 0;
+      }
+      .sheet::before {
+        content: "";
+        position: absolute;
+        left: 34px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--margin);
+        opacity: 0.8;
+      }
+      .sheet h2 {
+        margin: 0 0 12px;
+        font: 600 18px/1.2 var(--print-font);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+      }
+      .sheet h2 span {
+        color: var(--print-muted);
+        font-weight: 500;
+        font-size: 13px;
+        letter-spacing: 0.12em;
+        align-self: center;
+      }
+
+      /* calendar */
+      .week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        border: 2px solid var(--rule-strong);
+        background: var(--paper-2);
+      }
+      .day {
+        min-width: 0;
+        border-right: 1px solid var(--rule-strong);
+        min-height: 150px;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+      .day:last-child {
+        border-right: 0;
+      }
+      .day .head {
+        border-bottom: 1px solid var(--rule-strong);
+        padding: 6px 8px 4px;
+        font: 500 11px/1.1 var(--print-font);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+      .day .head b {
+        display: block;
+        font-size: 22px;
+        font-weight: 600;
+        color: var(--print);
+        letter-spacing: 0;
+        font-variant-numeric: tabular-nums;
+      }
+      .slot {
+        padding: 10px 6px 8px;
+        min-width: 0;
+        display: grid;
+        align-content: start;
+      }
+      .pen {
+        font: 20px/1.15 var(--pen-font);
+        color: var(--ink);
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .pen.red {
+        color: var(--ink-red);
+      }
+      .strike {
+        text-decoration: line-through;
+        text-decoration-color: var(--ink-red);
+        text-decoration-thickness: 2px;
+      }
+
+      /* ── sticky notes ───────────────────────────────────── */
+      .note {
+        position: relative;
+        background: var(--sticky-orange);
+        color: var(--sticky-ink);
+        padding: 12px 12px 10px;
+        width: 100%;
+        max-width: 190px;
+        min-width: 0;
+        border-radius: 2px;
+        box-shadow: 2px 4px 10px var(--shadow);
+        transform: rotate(var(--r, -1.5deg));
+        font: 500 15px/1.2 var(--print-font);
+        display: grid;
+        gap: 6px;
+      }
+      .note.pink {
+        background: var(--sticky-pink);
+      }
+      .note.lime {
+        background: var(--sticky-lime);
+      }
+      .note.small {
+        max-width: 100%;
+        padding: 9px 8px 8px;
+        font-size: 13px;
+      }
+      .note .rank {
+        display: flex;
+        justify-content: space-between;
+        font: 500 11px/1 var(--print-font);
+        letter-spacing: 0.06em;
+        opacity: 0.75;
+      }
+      .note .title {
+        overflow-wrap: anywhere;
+      }
+      .dots {
+        display: flex;
+        gap: 4px;
+      }
+      .dots i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        display: block;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+      }
+      /* tape = this stays */
+      .taped::before,
+      .taped-2::before,
+      .taped-2::after {
+        content: "";
+        position: absolute;
+        top: -9px;
+        width: 46px;
+        height: 16px;
+        background: var(--washi-a);
+        opacity: 0.9;
+        box-shadow: 0 1px 2px var(--shadow);
+        transform: rotate(-3deg);
+        pointer-events: none;
+      }
+      .taped::before {
+        left: 50%;
+        margin-left: -23px;
+      }
+      .taped-2::before {
+        left: -10px;
+        transform: rotate(-12deg);
+      }
+      .taped-2::after {
+        right: -10px;
+        transform: rotate(10deg);
+      }
+      .washi-b::before,
+      .washi-b::after {
+        background: var(--washi-b);
+      }
+      .washi-c::before,
+      .washi-c::after {
+        background: var(--washi-c);
+      }
+      .washi-a::before,
+      .washi-a::after {
+        background: var(--washi-a);
+      }
+
+      .cal {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 190px;
+        gap: 22px;
+        align-items: start;
+      }
+      .tray {
+        min-width: 0;
+        display: grid;
+        gap: 8px;
+        padding: 14px 12px 18px;
+        border: 2px dashed var(--rule-strong);
+        border-radius: 6px;
+      }
+      .tray .label {
+        font-size: 11px;
+      }
+      .tray .note + .note {
+        margin-top: -6px;
+      }
+
+      /* tier rows */
+      .tiers {
+        display: grid;
+        gap: 6px;
+      }
+      .tier {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        min-height: 52px;
+        border: 2px solid var(--rule-strong);
+        background: var(--paper-2);
+      }
+      .tier .mark {
+        display: grid;
+        place-items: center;
+        font: 600 20px/1 var(--print-font);
+        color: #1a1a1a;
+        border-right: 2px solid var(--rule-strong);
+      }
+      .tier .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 8px 10px;
+        min-width: 0;
+        align-items: start;
+      }
+      .tier .row .note {
+        max-width: 170px;
+        font-size: 13px;
+        padding: 9px 9px 8px;
+      }
+      .tray.h {
+        grid-template-columns: repeat(auto-fit, minmax(0, 180px));
+        grid-auto-flow: column;
+        justify-content: start;
+        gap: 14px;
+        margin-top: 14px;
+      }
+      .tray.h .note + .note {
+        margin-top: 0;
+      }
+      .status {
+        margin: 12px 0 0;
+        font: 500 13px/1.3 var(--print-font);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+
+      /* ── index card ─────────────────────────────────────── */
+      .card {
+        position: relative;
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 25px,
+            var(--manila-rule) 25px 26px
+          ),
+          var(--manila);
+        color: #2b2415;
+        padding: 0 18px 18px;
+        max-width: 460px;
+        box-shadow: 0 2px 10px var(--shadow);
+        border-radius: 2px;
+        min-width: 0;
+        justify-self: start;
+        width: 100%;
+      }
+      .card .top {
+        border-bottom: 2px solid var(--manila-red);
+        padding: 14px 0 6px;
+        font: 600 20px/1.15 var(--print-font);
+        overflow-wrap: anywhere;
+      }
+      .card .stamp {
+        font: 500 12px/1.2 var(--print-font);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        opacity: 0.7;
+        padding: 6px 0 8px;
+      }
+      .card ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .card li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        line-height: 26px;
+        font-size: 15px;
+      }
+      .card li span {
+        min-width: 0;
+      }
+      .card li b {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        font-weight: 600;
+      }
+      .card ol {
+        margin: 8px 0 0;
+        padding-left: 22px;
+        font-size: 14px;
+        line-height: 26px;
+      }
+      .card ol li {
+        display: list-item;
+      }
+
+      /* ── notepad ────────────────────────────────────────── */
+      .pad {
+        position: relative;
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 29px,
+            var(--pad-rule) 29px 30px
+          ),
+          var(--pad);
+        color: #26303a;
+        max-width: 320px;
+        width: 100%;
+        padding: 30px 18px 22px 22px;
+        margin-top: 12px;
+        box-shadow: 0 2px 10px var(--shadow);
+        clip-path: polygon(
+          0 0,
+          100% 0,
+          100% calc(100% - 10px),
+          94% 100%,
+          88% calc(100% - 8px),
+          80% 100%,
+          72% calc(100% - 9px),
+          64% 100%,
+          56% calc(100% - 7px),
+          48% 100%,
+          40% calc(100% - 9px),
+          32% 100%,
+          24% calc(100% - 8px),
+          16% 100%,
+          8% calc(100% - 9px),
+          0 100%
+        );
+        min-width: 0;
+        justify-self: start;
+      }
+      .pad .spiral {
+        position: absolute;
+        top: -8px;
+        left: 14px;
+        right: 14px;
+        height: 16px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .pad .spiral i {
+        width: 9px;
+        height: 16px;
+        border: 2px solid var(--spiral);
+        border-radius: 5px;
+        background: var(--desk);
+        display: block;
+      }
+      .pad h3 {
+        margin: 0 0 4px;
+        font: 600 16px/30px var(--print-font);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .pad ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .pad li {
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr);
+        align-items: baseline;
+        gap: 6px;
+        line-height: 30px;
+        min-width: 0;
+      }
+      .pad .box {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--pad-rule);
+        border-radius: 3px;
+        align-self: center;
+        position: relative;
+      }
+      .pad .box.on::after {
+        content: "✓";
+        position: absolute;
+        left: -1px;
+        top: -12px;
+        font: 22px/1 var(--pen-font);
+        color: var(--ink);
+      }
+      .pad .item {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .pad .done .item {
+        text-decoration: line-through;
+        text-decoration-color: var(--ink);
+        opacity: 0.6;
+      }
+      .pad .from {
+        font: 15px/1 var(--pen-font);
+        color: var(--ink);
+        margin-left: 6px;
+        white-space: nowrap;
+      }
+
+      /* ── samples ────────────────────────────────────────── */
+      .samples {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        align-items: start;
+      }
+      .sample {
+        min-width: 0;
+        display: grid;
+        gap: 10px;
+        padding: 16px 16px 20px;
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0 27px,
+            var(--rule) 27px 28px
+          ),
+          var(--paper);
+        box-shadow: 0 2px 10px var(--shadow);
+      }
+      .sample .pen {
+        line-height: 28px;
+      }
+      .strip {
+        height: 18px;
+        width: 70%;
+        box-shadow: 0 1px 2px var(--shadow);
+        opacity: 0.92;
+      }
+      .strip.a {
+        background: var(--washi-a);
+        transform: rotate(-2deg);
+      }
+      .strip.b {
+        background: var(--washi-b);
+        transform: rotate(1deg);
+        width: 60%;
+      }
+      .strip.c {
+        background: var(--washi-c);
+        transform: rotate(-1deg);
+        width: 80%;
+      }
+      .pair {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+        padding-top: 14px;
+      }
+      .pair .note {
+        max-width: 100%;
+      }
+      .pair small {
+        display: block;
+        margin-top: 8px;
+        font: 500 11px/1.2 var(--print-font);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        transform: none;
+      }
+
+      /* ── tokens ─────────────────────────────────────────── */
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+        gap: 10px;
+      }
+      .sw {
+        min-width: 0;
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--paper);
+        box-shadow: 0 1px 4px var(--shadow);
+      }
+      .sw i {
+        display: block;
+        height: 44px;
+      }
+      .sw b {
+        display: block;
+        padding: 6px 8px 2px;
+        font: 600 12px/1.2 var(--print-font);
+        letter-spacing: 0.04em;
+      }
+      .sw span {
+        display: block;
+        padding: 0 8px 8px;
+        font: 11px/1.2 var(--body-font);
+        color: var(--print-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .type {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+        padding: 18px;
+        background: var(--paper);
+        box-shadow: 0 2px 10px var(--shadow);
+      }
+      .type > div {
+        min-width: 0;
+      }
+      .type .spec-print {
+        font: 600 30px/1.05 var(--print-font);
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        font-variant-numeric: tabular-nums;
+      }
+      .type .spec-body {
+        font: 16px/1.5 var(--body-font);
+      }
+      .type .spec-pen {
+        font: 28px/1.15 var(--pen-font);
+        color: var(--ink);
+      }
+      .type small {
+        display: block;
+        margin-top: 8px;
+        font: 500 11px/1.2 var(--print-font);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+
+      @media (max-width: 900px) {
+        .cal {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .tray {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .tray .note + .note {
+          margin-top: 0;
+        }
+        .samples,
+        .type {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      @media (max-width: 720px) {
+        .panels {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .board {
+          padding: 20px 14px 48px;
+        }
+        .sheet {
+          padding: 18px 14px 18px 34px;
+        }
+        .sheet::before {
+          left: 24px;
+        }
+        .week {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .day {
+          min-height: 0;
+          grid-template-columns: 64px minmax(0, 1fr);
+          grid-template-rows: none;
+          border-right: 0;
+          border-bottom: 1px solid var(--rule-strong);
+        }
+        .day:last-child {
+          border-bottom: 0;
+        }
+        .day .head {
+          border-bottom: 0;
+          border-right: 1px solid var(--rule-strong);
+        }
+        .tray.h {
+          grid-auto-flow: row;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .pair {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="board">
+      <header>
+        <h1>chef-gpt · materials · Schoolbook</h1>
+        <p>The exercise book from the kitchen drawer: lined paper with a red margin, felt-tip pen, neon notes and patterned tape, so the kids' votes look like theirs.</p>
+      </header>
+
+      <div class="panels">
+        <!-- 1 · calendar -->
+        <section class="panel wide">
+          <div class="label"><b>1</b> · Sheet: the calendar</div>
+          <div class="sheet">
+            <h2>Week 36 <span>Monday start · 3 members</span></h2>
+            <div class="cal">
+              <div class="week">
+                <div class="day"><div class="head">Mon <b>31</b></div><div class="slot"></div></div>
+                <div class="day"><div class="head">Tue <b>01</b></div><div class="slot"><div class="note pink small taped washi-a" style="--r:-2deg"><span class="title">Hurtig chorizo- og harissaspaghetti</span></div></div></div>
+                <div class="day"><div class="head">Wed <b>02</b></div><div class="slot"><div class="pen">eating out</div></div></div>
+                <div class="day"><div class="head">Thu <b>03</b></div><div class="slot"><div class="note lime small taped washi-b" style="--r:1.5deg"><span class="title">Asiatisk avocado- og tofubowl</span></div></div></div>
+                <div class="day"><div class="head">Fri <b>04</b></div><div class="slot"></div></div>
+                <div class="day"><div class="head">Sat <b>05</b></div><div class="slot"></div></div>
+                <div class="day"><div class="head">Sun <b>06</b></div><div class="slot"></div></div>
+              </div>
+              <div class="tray">
+                <div class="label">Tray · 1 left</div>
+                <div class="note" style="--r:2deg"><span class="rank"><span>3</span><span>6 p</span></span><span class="title">Kalkun med spaghetti…</span><span class="dots"><i style="background:var(--t-b)"></i><i style="background:var(--t-a)"></i><i style="background:var(--t-f)"></i></span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2 · a round -->
+        <section class="panel wide">
+          <div class="label"><b>2</b> · Sheet: a round</div>
+          <div class="sheet">
+            <h2>Emma's ranking <span>Week 37 · open</span></h2>
+            <div class="tiers">
+              <div class="tier"><div class="mark" style="background:var(--t-s)">S</div><div class="row"><div class="note pink taped washi-a" style="--r:-1deg"><span class="title">Hurtig chorizo- og harissaspaghetti</span></div></div></div>
+              <div class="tier"><div class="mark" style="background:var(--t-a)">A</div><div class="row"></div></div>
+              <div class="tier"><div class="mark" style="background:var(--t-b)">B</div><div class="row"><div class="note lime taped washi-c" style="--r:1deg"><span class="title">Asiatisk avocado- og tofubowl</span></div></div></div>
+              <div class="tier"><div class="mark" style="background:var(--t-c)">C</div><div class="row"></div></div>
+              <div class="tier"><div class="mark" style="background:var(--t-d)">D</div><div class="row"></div></div>
+              <div class="tier"><div class="mark" style="background:var(--t-f)">F</div><div class="row"></div></div>
+              <div class="tier"><div class="mark" style="background:var(--t-g)">🗑</div><div class="row"></div></div>
+            </div>
+            <div class="tray h">
+              <div class="note" style="--r:-2deg"><span class="title">Kalkun med spaghetti…</span></div>
+              <div class="note pink" style="--r:1.5deg"><span class="title">Pandekager</span></div>
+            </div>
+            <p class="status">2 of 4 rated · results hidden until the round closes</p>
+          </div>
+        </section>
+
+        <!-- 3 · index card -->
+        <section class="panel">
+          <div class="label"><b>3</b> · Index card</div>
+          <div class="card taped-2 washi-b">
+            <div class="top">Hurtig chorizo- og harissaspaghetti</div>
+            <div class="stamp">20 min · Italian · HelloFresh</div>
+            <ul>
+              <li><span>spaghetti</span><b>400 g</b></li>
+              <li><span>chorizo, ternet</span><b>120 g</b></li>
+              <li><span>harissa</span><b>4 g</b></li>
+              <li><span>creme fraiche</span><b>1 bæger</b></li>
+              <li><span>løg</span><b>1</b></li>
+            </ul>
+            <ol>
+              <li>Boil the spaghetti; keep a cup of the water.</li>
+              <li>Fry the chorizo and onion until crisp.</li>
+              <li>Stir in harissa and creme fraiche, loosen with the water.</li>
+              <li>Toss with the spaghetti and serve.</li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- 4 · notepad -->
+        <section class="panel">
+          <div class="label"><b>4</b> · Notepad sheet</div>
+          <div class="pad taped-2 washi-c">
+            <div class="spiral"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <h3>Shopping list</h3>
+            <ul>
+              <li><span class="box"></span><span class="item">1 l Milk</span></li>
+              <li class="done"><span class="box on"></span><span class="item">12 Eggs</span></li>
+              <li><span class="box"></span><span class="item">120 g Chorizo, ternet<span class="from">chorizo pasta</span></span></li>
+              <li class="done"><span class="box on"></span><span class="item">4 g Harissa<span class="from">chorizo pasta</span></span></li>
+              <li><span class="box"></span><span class="item">1 bæger creme fraiche<span class="from">kalkun</span></span></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 5 · pen and tape -->
+        <section class="panel wide">
+          <div class="label"><b>5</b> · Pen and tape</div>
+          <div class="samples">
+            <div class="sample">
+              <div class="label">Blue felt-tip · a person said it</div>
+              <div class="pen">Tuesday is the chorizo pasta</div>
+              <div class="label">Red pen · a correction, a question</div>
+              <div class="pen red"><span class="strike">Pandekager</span> eating out</div>
+              <div class="pen red">Which one: chorizo pasta or kalkun?</div>
+            </div>
+            <div class="sample">
+              <div class="label">Washi tape · three patterns</div>
+              <div class="strip a"></div>
+              <div class="strip b"></div>
+              <div class="strip c"></div>
+            </div>
+            <div class="sample">
+              <div class="label">Tape means it stays</div>
+              <div class="pair">
+                <div><div class="note pink taped washi-a" style="--r:-1deg"><span class="title">Hurtig chorizo- og harissaspaghetti</span></div><small>placed · taped</small></div>
+                <div><div class="note lime" style="--r:2deg"><span class="title">Asiatisk avocado- og tofubowl</span></div><small>in the tray · loose</small></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6 · tokens and type -->
+        <section class="panel wide">
+          <div class="label"><b>6</b> · Tokens and type</div>
+          <div class="swatches">
+            <div class="sw"><i style="background:#dfe6ee"></i><b>desk</b><span>#dfe6ee</span></div>
+            <div class="sw"><i style="background:#fffdf5"></i><b>paper</b><span>#fffdf5</span></div>
+            <div class="sw"><i style="background:#cfe0f2"></i><b>rule</b><span>#cfe0f2</span></div>
+            <div class="sw"><i style="background:#e8837a"></i><b>margin</b><span>#e8837a</span></div>
+            <div class="sw"><i style="background:#2f3640"></i><b>print</b><span>#2f3640</span></div>
+            <div class="sw"><i style="background:#2457c5"></i><b>ink · felt-tip</b><span>#2457c5</span></div>
+            <div class="sw"><i style="background:#d12f2f"></i><b>ink-red</b><span>#d12f2f</span></div>
+            <div class="sw"><i style="background:#ffb3d9"></i><b>sticky pink</b><span>#ffb3d9</span></div>
+            <div class="sw"><i style="background:#d4f57a"></i><b>sticky lime</b><span>#d4f57a</span></div>
+            <div class="sw"><i style="background:#ffc46b"></i><b>sticky orange</b><span>#ffc46b</span></div>
+            <div class="sw"><i style="background:#f6e7c1"></i><b>manila</b><span>#f6e7c1</span></div>
+            <div class="sw"><i style="background:#ffffff"></i><b>notepad</b><span>#ffffff</span></div>
+          </div>
+          <div class="type">
+            <div><div class="spec-print">Week 36 · Tue 01</div><small>Print · Fredoka</small></div>
+            <div><div class="spec-body">Members of a household vote on candidate dinners, plan a week, and keep a shopping list.</div><small>Body · Nunito</small></div>
+            <div><div class="spec-pen">Saturday is the kalkun</div><small>Pen · Patrick Hand</small></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>

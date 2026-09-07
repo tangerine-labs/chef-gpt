@@ -27,5 +27,17 @@
       "quoteStyle": "double",
       "semicolons": "always"
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["site/designs/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDescendingSpecificity": "off"
+          }
+        }
+      }
+    }
+  ]
 }

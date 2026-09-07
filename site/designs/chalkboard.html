@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>chef-gpt · Chalkboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ── tokens: the board (default), then the café wall (light) ─────────── */
+      :root {
+        --board: #1f3a30;
+        --board-2: #24433a;
+        --wall: #1f3a30;
+        --frame: #6b4a2b;
+        --frame-2: #8a6237;
+        --chalk: #f2efe6;
+        --chalk-dim: #c9c6ba;
+        --ink: #f2efe6;
+        --ink-muted: #b9c1b4;
+        --yellow: #f4d35e;
+        --pink: #f2a1b6;
+        --paper: #f8f3e7;
+        --paper-line: #d9d0bd;
+        --paper-ink: #2b2620;
+        --paper-muted: #6f675b;
+        --card-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+        --tier-s: #ffd700;
+        --tier-a: #ef4444;
+        --tier-b: #f97316;
+        --tier-c: #eab308;
+        --tier-d: #22c55e;
+        --tier-f: #3b82f6;
+        --tier-g: #6b7280;
+        --display: "Amatic SC", "Comic Sans MS", "Chalkboard SE", cursive;
+        --sans: "Nunito Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --wall: #f5f0e6;
+          --ink: #2b2620;
+          --ink-muted: #6f675b;
+          --card-shadow: 0 8px 20px rgba(60, 40, 20, 0.14);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        overflow-x: clip;
+      }
+      body {
+        margin: 0;
+        background: var(--wall);
+        color: var(--ink);
+        font: 16px/1.6 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: inherit;
+      }
+      section {
+        overflow-x: clip;
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      /* ── chalk texture ────────────────────────────────────────────────────── */
+      .board-surface {
+        background-color: var(--board);
+        background-image:
+          radial-gradient(ellipse at 20% 30%, rgba(255, 255, 255, 0.06) 0, transparent 45%),
+          radial-gradient(ellipse at 80% 70%, rgba(255, 255, 255, 0.05) 0, transparent 40%),
+          radial-gradient(ellipse at 55% 10%, rgba(255, 255, 255, 0.04) 0, transparent 35%),
+          repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 7px),
+          repeating-linear-gradient(35deg, rgba(0, 0, 0, 0.05) 0 1px, transparent 1px 9px);
+      }
+      .framed {
+        border: 14px solid var(--frame);
+        border-image: linear-gradient(135deg, var(--frame-2), var(--frame) 40%, var(--frame-2) 80%, var(--frame)) 1;
+        box-shadow:
+          inset 0 0 0 2px rgba(0, 0, 0, 0.35),
+          inset 0 0 60px rgba(0, 0, 0, 0.35),
+          var(--card-shadow);
+      }
+
+      /* ── nav ──────────────────────────────────────────────────────────────── */
+      header.top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 0;
+        min-width: 0;
+      }
+      header.top .brand {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 34px;
+        letter-spacing: 0.04em;
+        text-decoration: none;
+        line-height: 1;
+      }
+      header.top nav {
+        display: flex;
+        gap: 18px;
+        font-size: 14px;
+        color: var(--ink-muted);
+        min-width: 0;
+      }
+      header.top nav a {
+        text-decoration: none;
+      }
+      @media (max-width: 720px) {
+        header.top nav {
+          display: none;
+        }
+      }
+
+      /* ── chalk type ───────────────────────────────────────────────────────── */
+      .chalk-h {
+        font-family: var(--display);
+        font-weight: 700;
+        color: var(--chalk);
+        letter-spacing: 0.03em;
+        line-height: 0.95;
+        margin: 0;
+        text-wrap: balance;
+      }
+      .eyebrow {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 26px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--yellow);
+        margin: 0 0 6px;
+        line-height: 1;
+      }
+      .squiggle {
+        display: block;
+        width: 180px;
+        max-width: 100%;
+        height: 10px;
+        margin: 6px 0 18px;
+      }
+      h2.sec {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: clamp(40px, 5vw, 56px);
+        line-height: 0.95;
+        margin: 0;
+        color: var(--ink);
+        text-wrap: balance;
+      }
+      .lede {
+        max-width: 60ch;
+        margin: 10px 0 0;
+        color: var(--ink-muted);
+      }
+
+      /* ── hero: the specials board ─────────────────────────────────────────── */
+      .hero {
+        padding: 12px 0 64px;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+        gap: 40px;
+        padding: 44px 44px 40px;
+        position: relative;
+        color: var(--chalk);
+      }
+      .board > * {
+        min-width: 0;
+      }
+      .board .tonight {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 34px;
+        letter-spacing: 0.18em;
+        color: var(--yellow);
+        line-height: 1;
+        margin: 0;
+      }
+      .board .role {
+        color: var(--chalk-dim);
+        font-size: 15px;
+        margin: 4px 0 18px;
+      }
+      .board h1 {
+        font-size: clamp(48px, 7vw, 92px);
+      }
+      .board .sub {
+        color: var(--chalk-dim);
+        max-width: 52ch;
+        margin: 18px 0 0;
+        font-size: 17px;
+      }
+      .arrowline {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 22px 0 0;
+        color: var(--pink);
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 26px;
+        letter-spacing: 0.06em;
+        min-width: 0;
+      }
+      .arrowline svg {
+        flex: 0 0 auto;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 20px;
+        align-items: center;
+        margin-top: 26px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px 22px;
+        border-radius: 8px;
+        border: 2px solid var(--chalk);
+        background: transparent;
+        color: var(--chalk);
+        font: 700 15px/1 var(--sans);
+        text-decoration: none;
+        cursor: pointer;
+        min-width: 0;
+      }
+      .btn.primary {
+        background: var(--yellow);
+        border-color: var(--yellow);
+        color: #2b2620;
+      }
+      .trust {
+        margin-top: 18px;
+        font-size: 13px;
+        color: var(--chalk-dim);
+        max-width: 56ch;
+      }
+      .specials {
+        border-left: 2px dashed rgba(242, 239, 230, 0.35);
+        padding-left: 28px;
+        align-self: stretch;
+      }
+      .specials h3 {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 30px;
+        letter-spacing: 0.1em;
+        margin: 0 0 8px;
+        color: var(--chalk);
+      }
+      .specials .today {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+      }
+      .specials .today small {
+        font-weight: 400;
+        color: var(--chalk-dim);
+      }
+      .specials .missing {
+        margin: 6px 0 22px;
+        color: var(--pink);
+        font-size: 15px;
+      }
+      .specials ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .specials li {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        padding: 6px 0;
+        border-bottom: 1px dotted rgba(242, 239, 230, 0.25);
+        min-width: 0;
+      }
+      .specials li b {
+        flex: 0 0 38px;
+        font-family: var(--display);
+        font-size: 24px;
+        color: var(--yellow);
+        letter-spacing: 0.08em;
+      }
+      .specials li span {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .specials li em {
+        font-style: normal;
+        color: var(--chalk-dim);
+        font-size: 13px;
+      }
+      @media (max-width: 720px) {
+        .board {
+          grid-template-columns: minmax(0, 1fr);
+          padding: 28px 22px 26px;
+          gap: 28px;
+        }
+        .specials {
+          border-left: 0;
+          padding-left: 0;
+          border-top: 2px dashed rgba(242, 239, 230, 0.35);
+          padding-top: 22px;
+        }
+      }
+
+      /* ── sections ─────────────────────────────────────────────────────────── */
+      .sec-block {
+        padding: 56px 0;
+        border-top: 1px dashed rgba(128, 128, 128, 0.35);
+      }
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 22px;
+        margin-top: 30px;
+      }
+      .step {
+        min-width: 0;
+      }
+      .step .num {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 56px;
+        line-height: 0.9;
+        color: var(--yellow);
+      }
+      .step h3 {
+        margin: 8px 0 6px;
+        font-size: 18px;
+      }
+      .step p {
+        margin: 0;
+        color: var(--ink-muted);
+        font-size: 15px;
+      }
+      .step q {
+        display: block;
+        margin-top: 8px;
+        font-style: italic;
+        color: var(--ink);
+        quotes: "“" "”";
+      }
+      @media (max-width: 900px) {
+        .steps {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 520px) {
+        .steps {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      /* ── paper menus on the wall (app facsimiles) ─────────────────────────── */
+      .menus {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+        margin-top: 30px;
+      }
+      .menu {
+        min-width: 0;
+        background: var(--paper);
+        color: var(--paper-ink);
+        border-radius: 3px;
+        padding: 18px 18px 16px;
+        box-shadow: var(--card-shadow);
+        position: relative;
+        font-size: 14px;
+      }
+      .menu::before {
+        content: "";
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        width: 60px;
+        height: 16px;
+        margin-left: -30px;
+        background: rgba(244, 211, 94, 0.75);
+        transform: rotate(-2deg);
+      }
+      .menu:nth-child(2) {
+        transform: rotate(0.6deg);
+      }
+      .menu:nth-child(3) {
+        transform: rotate(-0.5deg);
+      }
+      .menu h4 {
+        margin: 0 0 12px;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 30px;
+        letter-spacing: 0.06em;
+        line-height: 1;
+      }
+      .menu .cap {
+        margin: 12px 0 0;
+        font-size: 13px;
+        color: var(--paper-muted);
+      }
+      .menu .cap b {
+        color: var(--paper-ink);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--paper-line);
+        min-width: 0;
+      }
+      .row:last-of-type {
+        border-bottom: 0;
+      }
+      .row .day {
+        flex: 0 0 40px;
+        font-weight: 700;
+        line-height: 1.1;
+        font-size: 12px;
+      }
+      .row .day span {
+        display: block;
+        font-weight: 400;
+        color: var(--paper-muted);
+      }
+      .row .txt {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .row .txt.empty {
+        color: var(--paper-muted);
+      }
+      .row .meta {
+        color: var(--paper-muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .pill {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--paper-ink);
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .pill.on {
+        background: var(--paper-ink);
+        color: var(--paper);
+      }
+      .pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 6px 0 10px;
+      }
+      .input {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid var(--paper-line);
+        border-radius: 999px;
+        padding: 7px 12px;
+        color: var(--paper-muted);
+        font-size: 13px;
+        background: #fff;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cb {
+        flex: 0 0 15px;
+        width: 15px;
+        height: 15px;
+        border: 1.5px solid var(--paper-ink);
+        border-radius: 3px;
+      }
+      .cb.on {
+        background: var(--paper-ink);
+        box-shadow: inset 0 0 0 2px var(--paper);
+      }
+      .done {
+        text-decoration: line-through;
+        color: var(--paper-muted);
+      }
+      .tiers {
+        display: flex;
+        gap: 4px;
+        flex: 0 0 auto;
+      }
+      .tier {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 1.5px dashed var(--paper-muted);
+        display: grid;
+        place-items: center;
+        font: 700 10px/1 var(--sans);
+        color: var(--paper-muted);
+      }
+      .tier.on {
+        border-style: solid;
+        border-color: transparent;
+        color: #1f1a14;
+      }
+      @media (max-width: 720px) {
+        .menus {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .menu:nth-child(2),
+        .menu:nth-child(3) {
+          transform: none;
+        }
+      }
+
+      /* ── prompts ("+ menu") ───────────────────────────────────────────────── */
+      .two {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 40px;
+        margin-top: 30px;
+      }
+      .two > * {
+        min-width: 0;
+      }
+      .plus-menu {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .plus-menu li {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+        padding: 12px 0;
+        border-bottom: 1px dotted rgba(128, 128, 128, 0.45);
+      }
+      .plus-menu li .plus {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 30px;
+        line-height: 1;
+        color: var(--yellow);
+      }
+      .plus-menu li b {
+        display: block;
+        font-size: 16px;
+      }
+      .plus-menu li span {
+        color: var(--ink-muted);
+        font-size: 14px;
+      }
+      @media (max-width: 720px) {
+        .two {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      /* ── order pad (sign-in) ──────────────────────────────────────────────── */
+      .pad {
+        background: var(--paper);
+        color: var(--paper-ink);
+        border-radius: 4px;
+        padding: 26px 22px 22px;
+        box-shadow: var(--card-shadow);
+        position: relative;
+        max-width: 420px;
+        background-image: repeating-linear-gradient(transparent 0 27px, var(--paper-line) 27px 28px);
+        background-position: 0 70px;
+        min-width: 0;
+      }
+      .pad::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 14px;
+        background: repeating-linear-gradient(90deg, var(--paper-ink) 0 6px, transparent 6px 22px);
+        opacity: 0.35;
+        border-radius: 4px 4px 0 0;
+      }
+      .pad h3 {
+        margin: 6px 0 4px;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 36px;
+        line-height: 1;
+        letter-spacing: 0.04em;
+      }
+      .pad .sub {
+        margin: 0 0 18px;
+        color: var(--paper-muted);
+        font-size: 14px;
+      }
+      .pad .pbtn,
+      .pad .pinput {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        width: 100%;
+        padding: 11px 14px;
+        border-radius: 999px;
+        border: 1.5px solid var(--paper-ink);
+        background: #fff;
+        color: var(--paper-ink);
+        font: 600 14px/1.2 var(--sans);
+        margin-bottom: 10px;
+        min-width: 0;
+      }
+      .pad .pbtn.primary {
+        background: var(--paper-ink);
+        color: var(--paper);
+      }
+      .pad .pinput {
+        justify-content: flex-start;
+        font-weight: 400;
+        color: var(--paper-muted);
+        border-color: var(--paper-line);
+      }
+      .pad .or {
+        text-align: center;
+        font-size: 13px;
+        color: var(--paper-muted);
+        margin: 4px 0 10px;
+      }
+
+      /* ── setup + kids ─────────────────────────────────────────────────────── */
+      .setup {
+        list-style: none;
+        margin: 22px 0 0;
+        padding: 0;
+        counter-reset: s;
+      }
+      .setup li {
+        counter-increment: s;
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px dotted rgba(128, 128, 128, 0.45);
+      }
+      .setup li::before {
+        content: counter(s);
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 44px;
+        line-height: 0.9;
+        color: var(--yellow);
+      }
+      .members {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .members span {
+        padding: 5px 12px;
+        border-radius: 999px;
+        border: 2px solid var(--yellow);
+        color: var(--ink);
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .members span.kid {
+        border-style: dashed;
+      }
+
+      /* ── run your own, faq, footer ────────────────────────────────────────── */
+      .bullets {
+        margin: 18px 0 0;
+        padding-left: 1.2em;
+        max-width: 60ch;
+      }
+      .bullets li {
+        margin-bottom: 8px;
+      }
+      .bullets li::marker {
+        color: var(--yellow);
+      }
+      code {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 0.9em;
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgba(128, 128, 128, 0.18);
+      }
+      .faq {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 22px 40px;
+        margin-top: 30px;
+      }
+      .faq div {
+        min-width: 0;
+      }
+      .faq h3 {
+        margin: 0 0 6px;
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 28px;
+        line-height: 1;
+        letter-spacing: 0.03em;
+      }
+      .faq p {
+        margin: 0;
+        color: var(--ink-muted);
+        font-size: 15px;
+      }
+      @media (max-width: 720px) {
+        .faq {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+      footer {
+        padding: 32px 0 48px;
+        border-top: 1px dashed rgba(128, 128, 128, 0.35);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 22px;
+        font-size: 13px;
+        color: var(--ink-muted);
+      }
+      footer .brand {
+        font-family: var(--display);
+        font-weight: 700;
+        font-size: 24px;
+        color: var(--ink);
+        line-height: 1;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .menu {
+          transition: transform 0.25s ease;
+        }
+        .menu:hover {
+          transform: rotate(0) translateY(-2px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="#">chef-gpt</a>
+        <nav>
+          <a href="#how">How it works</a>
+          <a href="#apps">The apps</a>
+          <a href="#ask">Just ask</a>
+          <a href="#setup">Set up</a>
+          <a href="#run">Run your own</a>
+        </nav>
+      </header>
+    </div>
+
+    <!-- ── HERO: the specials board ──────────────────────────────────────── -->
+    <section class="hero">
+      <div class="wrap">
+        <div class="board board-surface framed">
+          <div>
+            <p class="tonight">TONIGHT</p>
+            <p class="role">Your household's specials board, and the helper who writes it.</p>
+            <h1 class="chalk-h">Vote on dinners, plan the week, keep the shopping list.</h1>
+            <p class="sub">
+              chef-gpt is household meal planning inside Claude Desktop. Your household ranks the candidates, the
+              week fills itself from the ranked list, and the ingredients land on one shopping list. Click in the
+              apps, or just ask.
+            </p>
+            <div class="arrowline">
+              <svg width="72" height="30" viewBox="0 0 72 30" fill="none" aria-hidden="true">
+                <path
+                  d="M2 22 C 18 4, 40 4, 64 12"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-dasharray="1 0"
+                />
+                <path d="M58 5 L 66 12 L 56 17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+              </svg>
+              <span>by clicking, or by asking</span>
+            </div>
+            <div class="actions">
+              <a class="btn primary" href="#setup">Sign in and add the connector</a>
+              <a class="btn" href="#how">See how it works</a>
+            </div>
+            <p class="trust">
+              Works with Claude Desktop custom connectors · Sign in with Google or a magic link · One household,
+              shared by everyone in it
+            </p>
+          </div>
+          <aside class="specials">
+            <h3>TONIGHT'S SPECIAL</h3>
+            <p class="today">Hurtig chorizo- og harissaspaghetti <small>· 20 min</small></p>
+            <p class="missing">Missing from the shopping list: 120 g chorizo, harissa</p>
+            <h3>THIS WEEK</h3>
+            <ul>
+              <li><b>MON</b><span><em>—</em></span></li>
+              <li><b>TUE</b><span>Hurtig chorizo- og harissaspaghetti</span></li>
+              <li><b>WED</b><span>eating out</span></li>
+              <li><b>THU</b><span>Asiatisk avocado- og tofubowl</span></li>
+              <li><b>FRI</b><span>Pandekager</span></li>
+              <li><b>SAT</b><span>Kalkun med spaghetti, grønne asparges…</span></li>
+              <li><b>SUN</b><span><em>—</em></span></li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── HOW IT WORKS ─────────────────────────────────────────────────── -->
+    <section class="sec-block" id="how">
+      <div class="wrap">
+        <p class="eyebrow">How the board gets written</p>
+        <h2 class="sec">Four steps, in the order the household lives them.</h2>
+        <svg class="squiggle" viewBox="0 0 180 10" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M1 6 Q 12 1, 24 6 T 48 6 T 72 6 T 96 6 T 120 6 T 144 6 T 168 6 T 180 6" stroke="var(--pink)" stroke-width="2.5" fill="none" stroke-linecap="round" />
+        </svg>
+        <div class="steps">
+          <div class="step">
+            <div class="num">1</div>
+            <h3>Start a round.</h3>
+            <p>Pick eight candidate dinners from your cookbooks, choose who votes.</p>
+            <q>Start a voting round with eight quick weeknight dinners for everyone.</q>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <h3>Everyone ranks.</h3>
+            <p>Each participant drags every candidate into a tier: S, A, B, C, D, F or GARBAGE. Results stay hidden until the round closes.</p>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <h3>Fill the week.</h3>
+            <p>The ranked list sits next to the week. Tap a dinner, then a day.</p>
+            <q>Tuesday is the chorizo pasta, Wednesday we're eating out.</q>
+          </div>
+          <div class="step">
+            <div class="num">4</div>
+            <h3>Shop once.</h3>
+            <p>Add a recipe's ingredients to the shopping list, check things off in the shop by saying them, clear what you bought.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── THE FOUR APPS: paper menus on the wall ───────────────────────── -->
+    <section class="sec-block" id="apps">
+      <div class="wrap">
+        <p class="eyebrow">Pinned to the wall</p>
+        <h2 class="sec">The four apps.</h2>
+        <p class="lede">
+          Each app is an MCP App: it opens inside the Claude conversation when the matching tool runs, and it is the
+          same data the tools talk to.
+        </p>
+        <div class="menus">
+          <div class="menu">
+            <h4>New round</h4>
+            <div class="row"><span class="input">Search dinners… (e.g. tofu, quick, pasta)</span><span class="pill">Search</span></div>
+            <div class="row"><span class="txt">Hurtig chorizo- og harissaspaghetti</span><span class="meta">20 min</span><span class="pill">Remove</span></div>
+            <div class="row"><span class="txt">Asiatisk avocado- og tofubowl</span><span class="meta">25 min</span><span class="pill">Remove</span></div>
+            <div class="row"><span class="txt">Kalkun med spaghetti, grønne asparges…</span><span class="meta">30 min</span><span class="pill">Remove</span></div>
+            <p class="cap" style="margin-top: 10px">Who votes?</p>
+            <div class="pills"><span class="pill on">Björn</span><span class="pill on">Emma</span><span class="pill on">Noah</span></div>
+            <div class="row"><span class="input">Label (optional, e.g. Week 37)</span><span class="pill on">Start voting</span></div>
+            <p class="cap"><b>Round builder.</b> Search the cookbooks, collect candidates, choose who votes, start voting.</p>
+          </div>
+
+          <div class="menu">
+            <h4>Emma, rank the dinners (2/3)</h4>
+            <div class="row">
+              <span class="txt">Hurtig chorizo- og harissaspaghetti</span>
+              <div class="tiers">
+                <span class="tier on" style="background: var(--tier-s)">S</span><span class="tier">A</span><span class="tier">B</span><span class="tier">C</span><span class="tier">D</span><span class="tier">F</span><span class="tier">🗑</span>
+              </div>
+            </div>
+            <div class="row">
+              <span class="txt">Asiatisk avocado- og tofubowl</span>
+              <div class="tiers">
+                <span class="tier">S</span><span class="tier">A</span><span class="tier on" style="background: var(--tier-b)">B</span><span class="tier">C</span><span class="tier">D</span><span class="tier">F</span><span class="tier">🗑</span>
+              </div>
+            </div>
+            <div class="row">
+              <span class="txt">Kalkun med spaghetti, grønne asparges…</span>
+              <div class="tiers">
+                <span class="tier">S</span><span class="tier">A</span><span class="tier">B</span><span class="tier">C</span><span class="tier">D</span><span class="tier">F</span><span class="tier">🗑</span>
+              </div>
+            </div>
+            <p class="cap"><b>Vote.</b> Pick your name, place each candidate in a tier. Voting again replaces your earlier ranking.</p>
+          </div>
+
+          <div class="menu">
+            <h4>Week of 2026-08-31</h4>
+            <div class="pills"><span class="pill">1. Hurtig chorizo… · 13p</span><span class="pill">2. Asiatisk avocado… · 11p</span><span class="pill">3. Kalkun med… · 6p</span></div>
+            <div class="row"><span class="day">Mon<span>31</span></span><span class="txt empty">—</span><span class="pill">Type</span></div>
+            <div class="row"><span class="day">Tue<span>01</span></span><span class="txt">Hurtig chorizo- og harissaspaghetti</span><span class="pill">Type</span><span class="pill">Clear</span></div>
+            <div class="row"><span class="day">Wed<span>02</span></span><span class="txt">eating out</span><span class="pill">Type</span><span class="pill">Clear</span></div>
+            <div class="row"><span class="day">Thu<span>03</span></span><span class="txt empty">—</span><span class="pill">Type</span></div>
+            <div class="row"><span class="day">Fri<span>04</span></span><span class="txt empty">—</span><span class="pill">Type</span></div>
+            <div class="row"><span class="day">Sat<span>05</span></span><span class="txt empty">—</span><span class="pill">Type</span></div>
+            <div class="row"><span class="day">Sun<span>06</span></span><span class="txt empty">—</span><span class="pill">Type</span></div>
+            <p class="cap"><b>Week plan.</b> The week's dinner slots beside the latest ranked list. Place, type free text, clear.</p>
+          </div>
+
+          <div class="menu">
+            <h4>Shopping list (3)</h4>
+            <div class="row"><span class="input">Add an item…</span><span class="pill">Add</span></div>
+            <div class="row"><span class="cb"></span><span class="txt">1 l Milk</span></div>
+            <div class="row"><span class="cb on"></span><span class="txt done">12 Eggs</span></div>
+            <div class="row"><span class="cb"></span><span class="txt">1 bæger creme fraiche <span class="meta">· Kalkun med spaghetti, grønne asparges…</span></span></div>
+            <div class="row"><span class="cb"></span><span class="txt">120 g Chorizo, ternet <span class="meta">· Hurtig chorizo- og harissaspaghetti</span></span></div>
+            <div class="row"><span class="cb on"></span><span class="txt done">4 g Harissa-krydderi <span class="meta">· Hurtig chorizo- og harissaspaghetti</span></span></div>
+            <div class="row" style="justify-content: center"><span class="pill">Clear 2 checked</span></div>
+            <p class="cap"><b>Shopping list.</b> One running list with check-off, quantities, and the recipe each item came from.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── OR JUST ASK ──────────────────────────────────────────────────── -->
+    <section class="sec-block" id="ask">
+      <div class="wrap">
+        <p class="eyebrow">Or just ask the kitchen</p>
+        <h2 class="sec">Five prompts appear in Claude Desktop's "+" menu.</h2>
+        <p class="lede">Each one is a routine the household already has.</p>
+        <div class="two">
+          <ul class="plus-menu">
+            <li><span class="plus">+</span><div><b>Plan the week.</b><span>Fill the week's dinners from the latest ranked list, then offer to shop for them.</span></div></li>
+            <li><span class="plus">+</span><div><b>Start a voting round.</b><span>Put together a round of candidate dinners and open voting.</span></div></li>
+            <li><span class="plus">+</span><div><b>What's for dinner tonight?</b><span>Tonight's plan, its recipe, and what is missing from the shopping list.</span></div></li>
+            <li><span class="plus">+</span><div><b>Shopping run.</b><span>Read the list grouped by recipe, add what I dictate, clear what I bought.</span></div></li>
+            <li><span class="plus">+</span><div><b>Set up the household.</b><span>Add the people who live here and invite the adults to connect their own Claude.</span></div></li>
+          </ul>
+          <div>
+            <p>
+              And anything in between: tools take names, not ids. "Retire the tofu bowl", "add milk", "who still
+              needs to vote?" A name that matches two recipes comes back as a question, never a guess.
+            </p>
+            <div class="board-surface framed" style="padding: 22px 24px; color: var(--chalk); margin-top: 18px">
+              <p class="tonight" style="font-size: 26px; letter-spacing: 0.12em">YOU SAID</p>
+              <p style="margin: 8px 0 14px; font-size: 17px">"Put the chorizo on Tuesday and add the harissa."</p>
+              <p class="tonight" style="font-size: 26px; letter-spacing: 0.12em; color: var(--pink)">THE HELPER</p>
+              <p style="margin: 8px 0 0; color: var(--chalk-dim); font-size: 15px">
+                Tuesday: Hurtig chorizo- og harissaspaghetti. Added 4 g Harissa-krydderi to the shopping list.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── KIDS VOTE TOO + SET UP ───────────────────────────────────────── -->
+    <section class="sec-block" id="setup">
+      <div class="wrap">
+        <div class="two">
+          <div>
+            <p class="eyebrow">Everyone at the table</p>
+            <h2 class="sec">Kids vote too.</h2>
+            <p class="lede">
+              A member is a person in the household who can vote. Members do not need to sign in: add the kids by
+              first name and they rank on your screen. Adults who want chef-gpt in their own Claude get an invite, a
+              single-use code that joins them to the household and links them to their member. All signed-in members
+              are equal.
+            </p>
+            <div class="members"><span>Björn</span><span class="kid">Emma</span><span class="kid">Noah</span></div>
+
+            <p class="eyebrow" style="margin-top: 44px">Table for one household</p>
+            <h2 class="sec">Set up in three steps.</h2>
+            <ol class="setup">
+              <li><div><b>Sign in</b> here with Google or a magic link. That creates your household.</div></li>
+              <li><div><b>Add the connector</b> in Claude Desktop: Settings → Connectors → Add custom connector, and paste the connector URL shown after you sign in.</div></li>
+              <li><div><b>Approve.</b> Claude brings you back here to authorize it. Then open a new chat and say "set up my household".</div></li>
+            </ol>
+            <p class="lede" style="margin-top: 16px">
+              Joining someone's household instead? Open the invite link they sent you and sign in; the invite is
+              redeemed on the way in.
+            </p>
+          </div>
+          <div>
+            <div class="pad">
+              <h3>Sign in to chef-gpt</h3>
+              <p class="sub">Your household's dinners, plans and shopping list.</p>
+              <div class="pbtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                </svg>
+                Continue with Google
+              </div>
+              <p class="or">or get a magic link</p>
+              <div class="pinput">you@example.com</div>
+              <div class="pbtn primary">Email me a link</div>
+              <p class="or">Joining someone's household?</p>
+              <div class="pinput">Invite code, e.g. ABCD-1234</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── RUN YOUR OWN ─────────────────────────────────────────────────── -->
+    <section class="sec-block" id="run">
+      <div class="wrap">
+        <p class="eyebrow">Back of house</p>
+        <h2 class="sec">Run your own.</h2>
+        <p class="lede">
+          chef-gpt is open source. The whole stack is one Supabase project: Postgres with Row Level Security for
+          tenancy, Supabase Auth as the OAuth 2.1 server, and one Deno edge function that serves the MCP endpoint and
+          the app views. The consent page is a static site on GitHub Pages. <code>scripts/setup-supabase.sh</code>
+          walks you through creating the projects; the decisions are written down in <code>docs/adr/</code>.
+        </p>
+        <ul class="bullets">
+          <li>A bug in a tool handler cannot read another household's data. The database refuses.</li>
+          <li>Deno is the only toolchain. No Node, no npm.</li>
+          <li>Views are plain React components with a fixture gallery, snapshotted in CI, light and dark.</li>
+        </ul>
+        <p style="margin-top: 18px"><a href="https://github.com/tangerine-labs/chef-gpt">github.com/tangerine-labs/chef-gpt</a></p>
+      </div>
+    </section>
+
+    <!-- ── FAQ ──────────────────────────────────────────────────────────── -->
+    <section class="sec-block">
+      <div class="wrap">
+        <p class="eyebrow">Ask the waiter</p>
+        <h2 class="sec">FAQ</h2>
+        <div class="faq">
+          <div>
+            <h3>Which Claude do I need?</h3>
+            <p>Claude Desktop with custom connectors (a paid plan). The apps render in the desktop app; the tools and prompts also work anywhere the connector is available.</p>
+          </div>
+          <div>
+            <h3>Is there a winner?</h3>
+            <p>No. A closed round gives a ranked list, candidates ordered by summed tier points. People choose from it by hand.</p>
+          </div>
+          <div>
+            <h3>Where are my recipes from?</h3>
+            <p>System cookbooks (Aarstiderne, HelloFresh) are visible to every household and can be switched off. Your household's own cookbook holds recipes you dictate, that Claude writes, or that you copy from a system cookbook to edit.</p>
+          </div>
+          <div>
+            <h3>Where is my data?</h3>
+            <p>In a Postgres database, scoped to your household by Row Level Security. Every request carries your own token; there is no shared service account in the request path.</p>
+          </div>
+          <div>
+            <h3>Can I belong to two households?</h3>
+            <p>Yes. An invite joins you to another household, and that household becomes the one you act in.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <footer>
+        <span class="brand">chef-gpt</span>
+        <span>Household meal planning as MCP Apps</span>
+        <a href="https://github.com/tangerine-labs/chef-gpt">Source on GitHub</a>
+        <a href="#setup">Sign in</a>
+        <span>Built by Tangerine Labs</span>
+      </footer>
+    </div>
+  </body>
+</html>

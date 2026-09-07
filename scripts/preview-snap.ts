@@ -5,21 +5,26 @@
  *   deno task preview:snap --story "Vote" --dark        one story, dark → scratch/preview-Vote-dark.png
  *   deno task preview:snap --all                        every story × light/dark → scratch/preview-*.png
  *                                                       + scratch/manifest.json (what CI posts on PRs)
+ *   deno task preview:snap --page designs/transcript.html  a static page under site/ (no build) → scratch/design-transcript.png
  *
  * Flags: --story <name> (exact heading from site/src/preview.tsx; quote it, several contain "—")
- *        --all · --dark · --width <px> (default 700; --all uses each story's own width)
+ *        --all · --dark · --width <px> (default 700; --all uses each story's own width; --page 1280)
+ *        --page <path> (relative to site/; served as-is, dark via the OS colour scheme)
+ *        --wait <ms> (settle time before the shot; default 1500, 2500 for --page)
  *        --out <png> (default $SNAP_DIR/…, SNAP_DIR=scratch)
  *
  * Builds the site, serves site/dist on a free port, renders with the system Chrome via
  * playwright-core, then exits. Run it as `deno task preview:snap` — a bare `deno preview:snap`
  * is parsed as a URL and fails with "Unsupported scheme".
  */
-const USAGE = `usage: deno task preview:snap [--story "<name>" | --all] [--dark] [--width <px>] [--out <png>]
+const USAGE = `usage: deno task preview:snap [--story "<name>" | --all | --page <path>] [--dark] [--width <px>] [--out <png>]
 
   --story <name>   only that story (exact heading from site/src/preview.tsx; quote it)
   --all            every story, light and dark, at each story's own width; writes manifest.json
-  --dark           render in the dark theme
-  --width <px>     viewport width (default 700)
+  --page <path>    a static page under site/ (e.g. designs/transcript.html), served without a build
+  --dark           render in the dark theme (for --page: prefers-color-scheme: dark)
+  --wait <ms>      settle time before the shot (default 1500; 2500 for --page)
+  --width <px>     viewport width (default 700; 1280 for --page)
   --out <png>      output file (default $SNAP_DIR/preview[-<story>][-dark].png, SNAP_DIR=scratch)
 
 Prints each PNG path on success.`;
@@ -43,13 +48,17 @@ const has = (name: string): boolean => {
 };
 const all = has("--all");
 const story = flag("--story");
+const page = flag("--page");
 const dark = has("--dark");
-const width = flag("--width") ?? "700";
+const width = flag("--width") ?? (page ? "1280" : "700");
+const wait = flag("--wait") ?? (page ? "2500" : "1500"); // a static page waits a little longer for web fonts
 const outFlag = flag("--out");
 const dir = Deno.env.get("SNAP_DIR") ?? "scratch";
 const slug = (name: string) => name.replace(/\W+/g, "_");
 const fileFor = (s: string | undefined, d: boolean) =>
   `${dir}/preview${s ? `-${slug(s)}` : ""}${d ? "-dark" : ""}.png`;
+const fileForPage = (p: string, d: boolean, w: string) =>
+  `${dir}/design-${p.replace(/^.*\//, "").replace(/\.html$/, "")}${d ? "-dark" : ""}${w === "1280" ? "" : `-${w}`}.png`;
 
 const root = new URL("../", import.meta.url);
 
@@ -64,18 +73,21 @@ const stories = (): { name: string; width: number }[] => {
   return found;
 };
 
-const build = await new Deno.Command("deno", {
-  args: ["task", "build:site"],
-  cwd: root.pathname,
-  stdout: "null",
-  stderr: "piped",
-}).output();
-if (!build.success) {
-  console.error(new TextDecoder().decode(build.stderr));
-  Deno.exit(1);
+// Stories need the built bundle; a static --page is served straight from site/.
+if (!page) {
+  const build = await new Deno.Command("deno", {
+    args: ["task", "build:site"],
+    cwd: root.pathname,
+    stdout: "null",
+    stderr: "piped",
+  }).output();
+  if (!build.success) {
+    console.error(new TextDecoder().decode(build.stderr));
+    Deno.exit(1);
+  }
 }
 
-const dist = new URL("site/dist/", root);
+const dist = new URL(page ? "site/" : "site/dist/", root);
 const server = Deno.serve({ port: 0, onListen: () => {} }, async (req) => {
   const path = new URL(req.url).pathname.replace(/^\/chef-gpt\/?/, "") || "index.html";
   try {
@@ -91,8 +103,8 @@ const port = (server.addr as Deno.NetAddr).port;
 const shoot = async (s: string | undefined, d: boolean, w: string | number, out: string) => {
   const q = new URLSearchParams();
   if (s) q.set("story", s);
-  if (d) q.set("theme", "dark");
-  const url = `http://127.0.0.1:${port}/chef-gpt/preview.html${q.size ? `?${q}` : ""}`;
+  if (d && !page) q.set("theme", "dark");
+  const url = `http://127.0.0.1:${port}/chef-gpt/${page ?? "preview.html"}${q.size ? `?${q}` : ""}`;
   Deno.mkdirSync(out.replace(/[^/]*$/, "") || ".", { recursive: true });
   const shot = await new Deno.Command("deno", {
     args: [
@@ -103,10 +115,11 @@ const shoot = async (s: string | undefined, d: boolean, w: string | number, out:
       "--channel",
       "chrome",
       "--viewport-size",
-      `${w},300`, // full-page grows to fit; the gallery is min-height 100vh, so keep this small
+      `${w},${page ? 800 : 300}`, // full-page grows to fit; the gallery is min-height 100vh, so keep this small
       "--full-page",
+      ...(page && d ? ["--color-scheme", "dark"] : []),
       "--wait-for-timeout",
-      "1500",
+      wait,
       url,
       out,
     ],
@@ -132,6 +145,8 @@ if (all) {
   }
   Deno.writeTextFileSync(`${dir}/manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`);
   console.log(`${dir}/manifest.json`);
+} else if (page) {
+  await shoot(undefined, dark, width, outFlag ?? fileForPage(page, dark, width));
 } else {
   await shoot(story, dark, width, outFlag ?? fileFor(story, dark));
 }

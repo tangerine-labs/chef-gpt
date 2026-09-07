@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>chef-gpt · Stationery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Caveat:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --desk: #d9d2c4;
+        --paper: #f4efe6;
+        --paper-2: #fbf8f2;
+        --rule: #c9c3b6;
+        --rule-soft: #e2dccf;
+        --print: #3d3a34;
+        --print-muted: #7a746a;
+        --ink: #1d3b8a;
+        --ink-red: #c2262e;
+        --sticky: #fff3a6;
+        --sticky-ink: #4a4020;
+        --focus: #1d3b8a;
+        --shadow: rgba(50, 40, 20, 0.18);
+        --tape: rgba(255, 255, 255, 0.55);
+        --tape-edge: rgba(120, 100, 60, 0.25);
+        --label: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
+        --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+        --pen: "Caveat", "Bradley Hand", "Comic Sans MS", cursive;
+        --t-s: #ffd700;
+        --t-a: #ef4444;
+        --t-b: #f97316;
+        --t-c: #eab308;
+        --t-d: #22c55e;
+        --t-f: #3b82f6;
+        --t-g: #6b7280;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --desk: #15171a;
+          --paper: #23262b;
+          --paper-2: #2b2f35;
+          --rule: #4a4f57;
+          --rule-soft: #34383f;
+          --print: #ecebe6;
+          --print-muted: #a6a49c;
+          --ink: #dfe7ff;
+          --ink-red: #ff7b7b;
+          --sticky: #e8d86a;
+          --sticky-ink: #2b2508;
+          --focus: #ffd700;
+          --shadow: rgba(0, 0, 0, 0.5);
+          --tape: rgba(255, 255, 255, 0.18);
+          --tape-edge: rgba(255, 255, 255, 0.22);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        overflow-x: clip;
+      }
+      body {
+        margin: 0;
+        background: var(--desk);
+        color: var(--print);
+        font: 17px/1.55 var(--body);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── desk and header ───────────────────────────────────── */
+      .desk {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px 24px 64px;
+        min-width: 0;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px 24px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--print);
+        margin-bottom: 28px;
+        min-width: 0;
+      }
+      header h1 {
+        margin: 0;
+        font: 700 22px/1 var(--label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      header h1 span {
+        color: var(--print-muted);
+        font-weight: 500;
+      }
+      header p {
+        margin: 0;
+        font-size: 15px;
+        color: var(--print-muted);
+        max-width: 56ch;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 28px;
+      }
+      .board > * {
+        min-width: 0;
+      }
+      .wide {
+        grid-column: 1 / -1;
+      }
+      .panel {
+        display: grid;
+        gap: 12px;
+        align-content: start;
+      }
+      .label {
+        font: 600 13px/1 var(--label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        margin: 0;
+      }
+      .label b {
+        color: var(--print);
+        font-weight: 700;
+        margin-right: 8px;
+      }
+
+      /* ── sheet ─────────────────────────────────────────────── */
+      .sheet {
+        position: relative;
+        background: var(--paper);
+        box-shadow: 0 12px 34px var(--shadow);
+        padding: 20px 22px 22px 60px;
+        min-width: 0;
+      }
+      .sheet::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 40px;
+        border-right: 1px solid var(--rule);
+        background: radial-gradient(circle at 20px 50%, var(--desk) 7px, transparent 8px) 0 0 / 40px 110px repeat-y;
+      }
+      .printed {
+        font: 600 13px/1 var(--label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        margin: 0 0 10px;
+      }
+
+      /* the week */
+      .weekwrap {
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 1.4fr);
+        gap: 20px;
+        align-items: start;
+      }
+      .weekwrap > * {
+        min-width: 0;
+      }
+      .week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        border: 2px solid var(--print);
+        background: var(--paper-2);
+        background-image: repeating-linear-gradient(to bottom, transparent 0 25px, var(--rule-soft) 25px 26px);
+        min-width: 0;
+      }
+      .day {
+        border-right: 1px solid var(--rule);
+        min-height: 190px;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .day:last-child {
+        border-right: 0;
+      }
+      .day.weekend {
+        background: rgba(120, 100, 60, 0.05);
+      }
+      .head {
+        font: 600 12px/1 var(--label);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        padding: 7px 6px 0;
+      }
+      .head b {
+        display: block;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--print);
+        font-variant-numeric: tabular-nums;
+        margin-top: 2px;
+        line-height: 1;
+      }
+      .slot {
+        flex: 1;
+        padding: 10px 5px 6px;
+        min-width: 0;
+      }
+      .written {
+        font: 500 19px/1.15 var(--pen);
+        color: var(--ink);
+        padding: 4px 2px 0;
+        overflow-wrap: anywhere;
+      }
+
+      /* ── sticky note and tape ──────────────────────────────── */
+      .note {
+        position: relative;
+        display: block;
+        width: 100%;
+        padding: 10px 9px 10px;
+        background: var(--sticky);
+        color: var(--sticky-ink);
+        box-shadow: 3px 6px 14px var(--shadow);
+        transform: rotate(var(--r, -1deg));
+        font: 500 17px/1.15 var(--pen);
+        border-radius: 2px;
+        min-width: 0;
+      }
+      .note .n {
+        font: 700 12px/1 var(--label);
+        letter-spacing: 0.1em;
+        color: var(--print-muted);
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 3px;
+      }
+      .note .t {
+        display: block;
+        overflow-wrap: anywhere;
+      }
+      .note .tiers {
+        display: flex;
+        gap: 5px;
+        margin-top: 7px;
+      }
+      .note .tiers i {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+      }
+      /* tape = this stays */
+      .taped::before,
+      .taped2::before,
+      .taped2::after {
+        content: "";
+        position: absolute;
+        top: -8px;
+        width: 48px;
+        height: 15px;
+        background: var(--tape);
+        border: 1px solid var(--tape-edge);
+        border-radius: 1px;
+        z-index: 2;
+      }
+      .taped::before {
+        left: 50%;
+        margin-left: -24px;
+        transform: rotate(-2deg);
+      }
+      .taped2::before {
+        left: 10px;
+        transform: rotate(-4deg);
+      }
+      .taped2::after {
+        right: 10px;
+        transform: rotate(3deg);
+      }
+
+      /* tray */
+      .tray {
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+      .tray .hint {
+        font: 500 20px/1.15 var(--pen);
+        color: var(--ink);
+        margin: 0;
+      }
+      .tray .note {
+        max-width: 230px;
+      }
+      .tray-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px 18px;
+        margin-top: 6px;
+      }
+      .tray-row .note {
+        width: 190px;
+      }
+
+      /* ── tier rows ─────────────────────────────────────────── */
+      .tiers-rows {
+        border: 2px solid var(--print);
+        background: var(--paper-2);
+        min-width: 0;
+      }
+      .tier {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        border-bottom: 1px solid var(--rule);
+        min-height: 60px;
+        min-width: 0;
+      }
+      .tier:last-child {
+        border-bottom: 0;
+      }
+      .tier .m {
+        display: grid;
+        place-items: center;
+        font: 700 22px/1 var(--label);
+        color: #111;
+        border-right: 1px solid var(--rule);
+        background: var(--c);
+      }
+      .tier .m.g {
+        font-size: 18px;
+      }
+      .tier .r {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        padding: 10px 12px 8px;
+        align-items: flex-start;
+        min-width: 0;
+      }
+      .tier .r .note {
+        width: 200px;
+        --r: 0.6deg;
+      }
+      .status {
+        font: 600 13px/1 var(--label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        margin: 12px 0 0;
+      }
+
+      /* ── index card ────────────────────────────────────────── */
+      .card {
+        position: relative;
+        background: var(--paper-2);
+        border: 1px solid var(--rule);
+        box-shadow: 0 10px 26px var(--shadow);
+        padding: 0 18px 16px;
+        transform: rotate(-0.6deg);
+        background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--rule-soft) 27px 28px);
+        background-position: 0 58px;
+        min-width: 0;
+      }
+      .card h3 {
+        margin: 0;
+        padding: 16px 0 6px;
+        border-bottom: 2px solid var(--ink-red);
+        font: 700 24px/1.1 var(--label);
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        overflow-wrap: anywhere;
+      }
+      .card .stamp {
+        display: block;
+        font: 600 12px/1 var(--label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        padding: 9px 0 8px;
+      }
+      .card ul,
+      .card ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .card li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        line-height: 28px;
+        font-size: 16px;
+        min-width: 0;
+      }
+      .card li b {
+        font: 600 15px/28px var(--label);
+        letter-spacing: 0.04em;
+        color: var(--print-muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .card ol {
+        counter-reset: step;
+        margin-top: 8px;
+      }
+      .card ol li {
+        display: block;
+        padding-left: 26px;
+        position: relative;
+      }
+      .card ol li::before {
+        counter-increment: step;
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        font: 700 16px/28px var(--label);
+        color: var(--ink-red);
+      }
+
+      /* ── notepad ───────────────────────────────────────────── */
+      .pad {
+        position: relative;
+        width: min(100%, 340px);
+        background: var(--paper-2);
+        box-shadow: 0 10px 26px var(--shadow);
+        padding: 30px 18px 0;
+        transform: rotate(0.8deg);
+        background-image: repeating-linear-gradient(to bottom, transparent 0 31px, var(--rule) 31px 32px);
+        background-position: 0 60px;
+        clip-path: polygon(
+          0 0,
+          100% 0,
+          100% 96%,
+          96% 100%,
+          90% 96%,
+          84% 100%,
+          78% 96%,
+          72% 100%,
+          66% 96%,
+          60% 100%,
+          54% 96%,
+          48% 100%,
+          42% 96%,
+          36% 100%,
+          30% 96%,
+          24% 100%,
+          18% 96%,
+          12% 100%,
+          6% 96%,
+          0 100%
+        );
+        min-width: 0;
+      }
+      .pad::after {
+        content: "";
+        position: absolute;
+        top: 6px;
+        left: 12px;
+        right: 12px;
+        height: 14px;
+        background: radial-gradient(circle at 8px 7px, var(--desk) 4px, transparent 5px) 0 0 / 22px 14px repeat-x;
+      }
+      .pad h3 {
+        margin: 0;
+        font: 700 20px/32px var(--label);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .pad ul {
+        list-style: none;
+        margin: 0;
+        padding: 0 0 26px;
+      }
+      .pad li {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        font: 500 21px/32px var(--pen);
+        color: var(--ink);
+        min-width: 0;
+      }
+      .pad .box {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid var(--print-muted);
+        align-self: center;
+        position: relative;
+      }
+      .pad .box.on::after {
+        content: "✓";
+        position: absolute;
+        left: 1px;
+        top: -11px;
+        font: 700 22px/1 var(--pen);
+        color: var(--ink);
+      }
+      .pad .done {
+        text-decoration: line-through;
+        text-decoration-color: var(--ink);
+        opacity: 0.6;
+      }
+      .pad small {
+        font-size: 15px;
+        color: var(--print-muted);
+        margin-left: auto;
+        white-space: nowrap;
+      }
+
+      /* ── pen and tape samples ──────────────────────────────── */
+      .samples {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px 28px;
+      }
+      .samples > * {
+        min-width: 0;
+      }
+      .pen-line {
+        font: 500 26px/1.2 var(--pen);
+        color: var(--ink);
+        margin: 0;
+      }
+      .pen-line.red {
+        color: var(--ink-red);
+      }
+      .pen-line s {
+        text-decoration-color: var(--ink-red);
+        text-decoration-thickness: 2px;
+        color: var(--ink);
+      }
+      .caption {
+        font: 600 12px/1.4 var(--label);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        margin: 4px 0 0;
+      }
+      .tapes {
+        position: relative;
+        height: 70px;
+        background: var(--paper-2);
+        border: 1px solid var(--rule);
+      }
+      .tapes i {
+        position: absolute;
+        top: 24px;
+        width: 64px;
+        height: 18px;
+        background: var(--tape);
+        border: 1px solid var(--tape-edge);
+      }
+      .tapes i:nth-child(1) {
+        left: 8%;
+        transform: rotate(-6deg);
+      }
+      .tapes i:nth-child(2) {
+        left: 40%;
+        transform: rotate(2deg);
+      }
+      .tapes i:nth-child(3) {
+        left: 72%;
+        transform: rotate(9deg);
+      }
+      .pair {
+        display: flex;
+        gap: 22px;
+        flex-wrap: wrap;
+        padding-top: 12px;
+      }
+      .pair .note {
+        width: 170px;
+      }
+
+      /* ── tokens and type ───────────────────────────────────── */
+      .swatches {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+      }
+      .sw {
+        border: 1px solid var(--rule);
+        background: var(--paper-2);
+        min-width: 0;
+      }
+      .sw i {
+        display: block;
+        height: 40px;
+        background: var(--c);
+      }
+      .sw span {
+        display: block;
+        padding: 6px 8px 7px;
+        font: 600 12px/1.3 var(--label);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+      .sw span b {
+        display: block;
+        color: var(--print);
+        font-variant-numeric: tabular-nums;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .type {
+        display: grid;
+        gap: 14px;
+        margin-top: 8px;
+      }
+      .type > div {
+        border-top: 1px solid var(--rule);
+        padding-top: 10px;
+        min-width: 0;
+      }
+      .spec-print {
+        font: 700 30px/1 var(--label);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin: 0;
+      }
+      .spec-body {
+        font: 17px/1.5 var(--body);
+        margin: 0;
+        max-width: 56ch;
+      }
+      .spec-pen {
+        font: 500 30px/1.1 var(--pen);
+        color: var(--ink);
+        margin: 0;
+      }
+
+      @media (max-width: 720px) {
+        .board {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .weekwrap,
+        .samples {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .week {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .day {
+          min-height: 0;
+          border-right: 0;
+          border-bottom: 1px solid var(--rule);
+          flex-direction: row;
+          align-items: flex-start;
+        }
+        .day:last-child {
+          border-bottom: 0;
+        }
+        .head {
+          width: 58px;
+          flex: none;
+          padding: 8px 6px;
+        }
+        .slot {
+          padding: 8px 8px 8px 0;
+        }
+        .sheet {
+          padding-left: 22px;
+        }
+        .sheet::before {
+          display: none;
+        }
+        .tier .r .note,
+        .tray-row .note {
+          width: min(100%, 200px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="desk">
+      <header>
+        <h1>chef-gpt <span>· materials ·</span> Stationery</h1>
+        <p>The planner as it comes from the shop: cream paper, printed rules, a blue pen, yellow notes, clear tape.</p>
+      </header>
+
+      <div class="board">
+        <!-- 1 · the calendar -->
+        <section class="panel wide">
+          <p class="label"><b>1</b> Sheet: the calendar</p>
+          <div class="sheet">
+            <p class="printed">Week 36 · Monday start · 3 members</p>
+            <div class="weekwrap">
+              <div class="week">
+                <div class="day"><div class="head">Mon <b>31</b></div><div class="slot"></div></div>
+                <div class="day">
+                  <div class="head">Tue <b>01</b></div>
+                  <div class="slot">
+                    <span class="note taped" style="--r: -1.2deg"><span class="n"><span>1</span><span>13 p</span></span><span class="t">Hurtig chorizo- og harissaspaghetti</span></span>
+                  </div>
+                </div>
+                <div class="day">
+                  <div class="head">Wed <b>02</b></div>
+                  <div class="slot"><div class="written">eating out</div></div>
+                </div>
+                <div class="day">
+                  <div class="head">Thu <b>03</b></div>
+                  <div class="slot">
+                    <span class="note taped" style="--r: 0.9deg"><span class="n"><span>2</span><span>11 p</span></span><span class="t">Asiatisk avocado- og tofubowl</span></span>
+                  </div>
+                </div>
+                <div class="day"><div class="head">Fri <b>04</b></div><div class="slot"></div></div>
+                <div class="day weekend"><div class="head">Sat <b>05</b></div><div class="slot"></div></div>
+                <div class="day weekend"><div class="head">Sun <b>06</b></div><div class="slot"></div></div>
+              </div>
+              <div class="tray">
+                <p class="hint">Still in the tray:</p>
+                <span class="note" style="--r: -2.5deg"><span class="n"><span>3</span><span>6 p</span></span><span class="t">Kalkun med spaghetti…</span><span class="tiers"><i style="background: var(--t-b)"></i><i style="background: var(--t-a)"></i><i style="background: var(--t-f)"></i></span></span>
+                <p class="caption">Loose = no tape. Placed = taped.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2 · a round -->
+        <section class="panel wide">
+          <p class="label"><b>2</b> Sheet: a round</p>
+          <div class="sheet">
+            <p class="printed">Round · Week 37 · Emma is ranking</p>
+            <div class="tiers-rows">
+              <div class="tier">
+                <div class="m" style="--c: var(--t-s)">S</div>
+                <div class="r">
+                  <span class="note taped" style="--r: -0.8deg"><span class="t">Hurtig chorizo- og harissaspaghetti</span></span>
+                </div>
+              </div>
+              <div class="tier"><div class="m" style="--c: var(--t-a)">A</div><div class="r"></div></div>
+              <div class="tier">
+                <div class="m" style="--c: var(--t-b)">B</div>
+                <div class="r">
+                  <span class="note taped" style="--r: 1.1deg"><span class="t">Asiatisk avocado- og tofubowl</span></span>
+                </div>
+              </div>
+              <div class="tier"><div class="m" style="--c: var(--t-c)">C</div><div class="r"></div></div>
+              <div class="tier"><div class="m" style="--c: var(--t-d)">D</div><div class="r"></div></div>
+              <div class="tier"><div class="m" style="--c: var(--t-f)">F</div><div class="r"></div></div>
+              <div class="tier"><div class="m g" style="--c: var(--t-g)">🗑</div><div class="r"></div></div>
+            </div>
+            <div class="tray">
+              <div class="tray-row">
+                <span class="note" style="--r: -2deg"><span class="t">Kalkun med spaghetti…</span></span>
+                <span class="note" style="--r: 1.6deg"><span class="t">Pandekager</span></span>
+              </div>
+              <p class="status">2 of 4 rated · results hidden until the round closes</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3 · index card -->
+        <section class="panel">
+          <p class="label"><b>3</b> Index card</p>
+          <article class="card taped2">
+            <h3>Hurtig chorizo- og harissaspaghetti</h3>
+            <span class="stamp">20 min · Italian · HelloFresh</span>
+            <ul>
+              <li>spaghetti <b>400 g</b></li>
+              <li>chorizo <b>120 g</b></li>
+              <li>harissa <b>4 g</b></li>
+              <li>creme fraiche <b>1 bæger</b></li>
+              <li>løg <b>1</b></li>
+            </ul>
+            <ol>
+              <li>Boil the spaghetti; keep a cup of the water.</li>
+              <li>Fry chorizo and onion until the fat runs.</li>
+              <li>Stir in harissa and creme fraiche, loosen with the water.</li>
+              <li>Toss with the spaghetti and serve.</li>
+            </ol>
+          </article>
+        </section>
+
+        <!-- 4 · notepad -->
+        <section class="panel">
+          <p class="label"><b>4</b> Notepad sheet</p>
+          <div class="pad taped">
+            <h3>Shopping list</h3>
+            <ul>
+              <li><i class="box"></i>1 l Milk</li>
+              <li><i class="box on"></i><span class="done">12 Eggs</span></li>
+              <li><i class="box"></i>120 g Chorizo, ternet <small>chorizo pasta</small></li>
+              <li><i class="box on"></i><span class="done">4 g Harissa</span> <small>chorizo pasta</small></li>
+              <li><i class="box"></i>1 bæger creme fraiche <small>kalkun</small></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 5 · pen and tape -->
+        <section class="panel wide">
+          <p class="label"><b>5</b> Pen and tape</p>
+          <div class="sheet">
+            <div class="samples">
+              <div>
+                <p class="pen-line">Tuesday is the chorizo pasta</p>
+                <p class="caption">Blue pen: what a person said</p>
+                <p class="pen-line red" style="margin-top: 16px"><s>Pandekager</s> Which one: chorizo pasta or kalkun?</p>
+                <p class="caption">Red pen: a correction or a question</p>
+              </div>
+              <div>
+                <div class="tapes"><i></i><i></i><i></i></div>
+                <p class="caption">Tape: translucent, faint edge, never straight</p>
+                <div class="pair">
+                  <span class="note" style="--r: -2deg"><span class="t">Pandekager</span></span>
+                  <span class="note taped" style="--r: 1deg"><span class="t">Pandekager</span></span>
+                </div>
+                <p class="caption">Loose in the tray · taped, so it stays</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6 · tokens and type -->
+        <section class="panel wide">
+          <p class="label"><b>6</b> Tokens and type</p>
+          <div class="sheet">
+            <div class="swatches">
+              <div class="sw"><i style="--c: var(--desk)"></i><span>desk<b>#d9d2c4</b></span></div>
+              <div class="sw"><i style="--c: var(--paper)"></i><span>paper<b>#f4efe6</b></span></div>
+              <div class="sw"><i style="--c: var(--paper-2)"></i><span>paper-2<b>#fbf8f2</b></span></div>
+              <div class="sw"><i style="--c: var(--rule)"></i><span>rule<b>#c9c3b6</b></span></div>
+              <div class="sw"><i style="--c: var(--print)"></i><span>print<b>#3d3a34</b></span></div>
+              <div class="sw"><i style="--c: var(--print-muted)"></i><span>print-muted<b>#7a746a</b></span></div>
+              <div class="sw"><i style="--c: var(--ink)"></i><span>ink<b>#1d3b8a</b></span></div>
+              <div class="sw"><i style="--c: var(--ink-red)"></i><span>ink-red<b>#c2262e</b></span></div>
+              <div class="sw"><i style="--c: var(--sticky)"></i><span>sticky<b>#fff3a6</b></span></div>
+              <div class="sw"><i style="--c: var(--sticky-ink)"></i><span>sticky-ink<b>#4a4020</b></span></div>
+              <div class="sw"><i style="--c: var(--tape); border-bottom: 1px solid var(--tape-edge)"></i><span>tape<b>rgba(255,255,255,.55)</b></span></div>
+            </div>
+            <div class="type">
+              <div>
+                <p class="spec-print">Week 36 · Monday start · 13 p</p>
+                <p class="caption">Print · Barlow Condensed · labels, dates, headings, buttons</p>
+              </div>
+              <div>
+                <p class="spec-body">chef-gpt is household meal planning inside Claude Desktop. Your household ranks the candidates, the week fills itself from the ranked list.</p>
+                <p class="caption">Body · Source Sans 3 · 17 px</p>
+              </div>
+              <div>
+                <p class="spec-pen">Wednesday we're eating out</p>
+                <p class="caption">Pen · Caveat · handwritten only, a line or two</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </body>
+</html>
