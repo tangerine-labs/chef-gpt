@@ -666,6 +666,7 @@ export type Database = {
       };
       plan_household: { Args: { pid: string }; Returns: string };
       round_household: { Args: { rid: string }; Returns: string };
+      week_bundle: { Args: { monday: string }; Returns: Json };
     };
     Enums: {
       meal_type: "breakfast" | "lunch" | "dinner" | "snack";

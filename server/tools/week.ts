@@ -1,7 +1,13 @@
 import type { MCPServer } from "mcp-use";
 import type { SupabaseOAuthUser } from "mcp-use/oauth/supabase";
 import { z } from "zod";
-import { MEAL_TYPES, weekDates, weekStart } from "../../packages/domain/mod.ts";
+import {
+  MEAL_TYPES,
+  type RankingEntry,
+  rankedList,
+  weekDates,
+  weekStart,
+} from "../../packages/domain/mod.ts";
 import { type Db, householdId, must, ToolError, userDb } from "../db.ts";
 import { resolveRecipe } from "./resolve.ts";
 import { guarded, hints, ok } from "./results.ts";
@@ -25,51 +31,44 @@ const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satu
 export const dayName = (date: string): string =>
   DAY_NAMES[(new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7];
 
-async function readWeek(db: Db, hid: string, anyDate: string) {
+type Card = { id: string; title: string; image_url: string | null };
+/** What `week_bundle` returns (migration 20260907210000): the week's slots and the latest closed round, raw. */
+type Bundle = {
+  household_id: string;
+  plan_id: string | null;
+  slots: { date: string; meal_type: z.infer<typeof MealType>; title: string | null; recipe: Card | null }[];
+  round: {
+    id: string;
+    candidates: { recipe_id: string; title: string; image_url: string | null }[];
+    entries: { member_id: string; recipe_id: string; tier: RankingEntry["tier"] }[];
+  } | null;
+};
+
+/** The week containing `anyDate` plus the latest closed round, in one round trip (docs/performance.md §5). */
+async function weekBundle(db: Db, anyDate: string) {
   const monday = weekStart(anyDate);
-  const plan = must(
-    await db
-      .from("meal_plans")
-      .select("id")
-      .eq("household_id", hid)
-      .eq("week_start", monday)
-      .maybeSingle()
-      .then((r) => ({ ...r, data: r.data ?? { id: null } })),
-    "plan",
-  );
-  const slots = plan.id
-    ? must(
-        await db
-          .from("slots")
-          .select("date, meal_type, title, recipes(id, title, image_url)")
-          .eq("meal_plan_id", plan.id),
-        "slots",
-      )
-    : [];
-  const byDate = new Map<string, typeof slots>();
-  for (const s of slots) {
+  const bundle = must(await db.rpc("week_bundle", { monday }), "week") as unknown as Bundle;
+  const byDate = new Map<string, Bundle["slots"]>();
+  for (const s of bundle.slots) {
     const list = byDate.get(s.date) ?? [];
     list.push(s);
     byDate.set(s.date, list);
   }
-  return {
-    planId: plan.id as string | null,
-    week: {
-      weekStart: monday,
-      days: weekDates(monday).map((date) => ({
+  const week: z.infer<typeof Week> = {
+    weekStart: monday,
+    days: weekDates(monday).map((date) => ({
+      date,
+      slots: (byDate.get(date) ?? []).map((s) => ({
         date,
-        slots: (byDate.get(date) ?? []).map((s) => {
-          const r = s.recipes as unknown as { id: string; title: string; image_url: string | null } | null;
-          return {
-            date,
-            mealType: s.meal_type,
-            recipe: r ? { id: r.id, title: r.title, imageUrl: proxied(r.image_url) } : null,
-            title: s.title,
-          };
-        }),
+        mealType: s.meal_type,
+        recipe: s.recipe
+          ? { id: s.recipe.id, title: s.recipe.title, imageUrl: proxied(s.recipe.image_url) }
+          : null,
+        title: s.title,
       })),
-    },
+    })),
   };
+  return { hid: bundle.household_id, planId: bundle.plan_id, week, round: bundle.round };
 }
 
 const weekText = (week: z.infer<typeof Week>): string =>
@@ -85,6 +84,8 @@ const weekText = (week: z.infer<typeof Week>): string =>
     })
     .join("\n");
 
+const today = () => new Date().toISOString().slice(0, 10);
+
 export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
   server.tool(
     {
@@ -99,8 +100,7 @@ export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const { week } = await readWeek(db, hid, input.date ?? new Date().toISOString().slice(0, 10));
+        const { week } = await weekBundle(db, input.date ?? today());
         return ok(`Week of ${week.weekStart}:\n${weekText(week)}`, { week });
       }),
   );
@@ -163,7 +163,7 @@ export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
           );
           what = (row.recipes as unknown as { title: string } | null)?.title ?? row.title ?? "";
         }
-        const { week } = await readWeek(db, hid, input.date);
+        const { week } = await weekBundle(db, input.date);
         return ok(
           `${dayName(input.date)} ${input.date}${input.mealType === "dinner" ? "" : ` (${input.mealType})`}: ${what}.`,
           { week },
@@ -198,18 +198,7 @@ export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const { week } = await readWeek(db, hid, input.date ?? new Date().toISOString().slice(0, 10));
-        const rounds = must(
-          await db
-            .from("rounds")
-            .select("id")
-            .eq("household_id", hid)
-            .eq("status", "closed")
-            .order("created_at", { ascending: false })
-            .limit(1),
-          "rounds",
-        );
+        const { week, round } = await weekBundle(db, input.date ?? today());
         let ranked: {
           recipeId: string;
           title: string;
@@ -217,45 +206,11 @@ export function registerWeekTools(server: MCPServer<SupabaseOAuthUser>) {
           rank: number;
           imageUrl: string | null;
         }[] = [];
-        if (rounds.length > 0) {
-          const [candidates, rankings] = await Promise.all([
-            must(
-              await db
-                .from("round_candidates")
-                .select("recipe_id, recipes(id, title, image_url)")
-                .eq("round_id", rounds[0].id),
-              "candidates",
-            ),
-            must(
-              await db
-                .from("rankings")
-                .select("member_id, ranking_entries(recipe_id, tier)")
-                .eq("round_id", rounds[0].id),
-              "rankings",
-            ),
-          ]);
-          const { rankedList } = await import("../../packages/domain/mod.ts");
-          const entries = rankings.flatMap((r) =>
-            (
-              r.ranking_entries as {
-                recipe_id: string;
-                tier: "S" | "A" | "B" | "C" | "D" | "F" | "GARBAGE";
-              }[]
-            ).map((e) => ({
-              recipeId: e.recipe_id,
-              memberId: r.member_id,
-              tier: e.tier,
-            })),
-          );
+        if (round) {
+          const cardById = new Map(round.candidates.map((c) => [c.recipe_id, c]));
           const list = rankedList(
-            candidates.map((c) => c.recipe_id),
-            entries,
-          );
-          const cardById = new Map(
-            candidates.map((c) => [
-              c.recipe_id,
-              c.recipes as unknown as { title: string; image_url: string | null },
-            ]),
+            round.candidates.map((c) => c.recipe_id),
+            round.entries.map((e) => ({ recipeId: e.recipe_id, memberId: e.member_id, tier: e.tier })),
           );
           ranked = list.map((r) => ({
             recipeId: r.recipeId,

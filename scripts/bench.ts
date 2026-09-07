@@ -72,6 +72,9 @@ type Row = {
   dbCalls?: number;
   worker?: string;
 };
+// The first request after a deploy is the platform staging the new function, not us: warm up once.
+await (await fetch(`${base}/nothing`)).arrayBuffer();
+
 const rows: Row[] = [];
 for (const step of SCRIPT) {
   for (let i = 0; i < runs; i++) {

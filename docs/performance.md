@@ -84,7 +84,7 @@ Implemented in the `perf/instrument` branch; the numbers above come from it.
 
 Done for the boot (ADR 0006): the function deploys as one module and the floor is 0.22 s. What is left, in order of leverage:
 
-1. **One RPC per read tool** instead of three to six PostgREST calls. From a fresh worker each call costs 100 to 150 ms and the first also pays the TLS handshake to the public gateway; `get_household` (4 calls), `search_recipes` (5) and `show_week` (6) spend 530 to 660 ms there. A Postgres function per tool, run as the caller so RLS still applies, brings each to one round trip: expect 400 to 500 ms off the heavy tools and the budgets within reach.
+1. **One RPC per read tool** instead of three to six PostgREST calls (done for the week: `week_bundle`, see the log; `get_household` and `search_recipes` next). From a fresh worker each call costs 100 to 150 ms and the first also pays the TLS handshake to the public gateway; `get_household` (4 calls), `search_recipes` (5) and `show_week` (6) spend 530 to 660 ms there. A Postgres function per tool, run as the caller so RLS still applies, brings each to one round trip: expect 400 to 500 ms off the heavy tools and the budgets within reach.
 2. **Warm workers** would remove the remaining 0.2 s per request. Supabase ties the idle period to the plan; check what Pro gives before paying for it, since the bench answers the question in one run.
 3. **The view's second round trip**: the resource read pays the floor again. Check whether the host caches `ui://` resources across opens; if not, the resource must be as cheap as possible on our side (it already is: 7 ms).
 4. Not a lever: connection pooling. The function never opens a Postgres connection; supabase-js speaks HTTP to PostgREST, which holds its own pool. Hyperdrive is a Cloudflare Workers binding, and Supabase Edge Functions are Deno workers behind Cloudflare's CDN, not Workers.
@@ -112,3 +112,14 @@ Bench p50 in ms, 5 runs, dev project, before → after:
 | show_shopping_list | 1689 | 697 | 434 | 260 | 2 |
 
 Method: deployed `ping` (one line), `ping-sb` (imports supabase-js), `ping-heavy` (imports what chef imports) and `ping-bundled` (ping-heavy through `deno bundle`, tslib and @mcp-use/client external) next to chef on the dev project and timed each: 0.10, 0.17, 1.38 and 0.17 s per request, all with a new worker id per request. Region pinning (`x-region: eu-north-1`, the database's region) was rerouted to eu-central-1 and changed nothing. The experiment functions were deleted afterwards.
+
+### 2026-09-07 · week in one round trip (`week_bundle`)
+
+`show_week` made six PostgREST calls in sequence (household, plan, slots, latest round, candidates, rankings); `get_week` three. A security-invoker Postgres function now returns the week's slots and the latest closed round as one JSON document, RLS applied as the caller, and the ranked-list arithmetic stays in `packages/domain`. The bench also warms the function up once before timing, so the 404 row no longer measures the post-deploy first hit.
+
+| Name | before | after | handle | db | calls |
+|---|---|---|---|---|---|
+| show_week | 939 | 460 | 252 | 86 | 1 |
+| get_week | 625 | 491 | 257 | 133 | 1 |
+
+p50 in ms, 3 runs, dev project. The same shape fits `get_household` (4 calls) and `search_recipes` (5).
