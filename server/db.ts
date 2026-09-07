@@ -34,3 +34,15 @@ export function must<T>(
   if (result.data === null || result.data === undefined) throw new ToolError(`${what}: not found`);
   return result.data as NonNullable<T>;
 }
+
+/** What `household_bundle` returns (migration 20260907220000): the household, its members and open invites. */
+export type HouseholdBundle = {
+  household: { id: string; name: string };
+  members: { id: string; name: string; user_id: string | null }[];
+  invites: { code: string; expires_at: string; member_name: string | null }[];
+};
+
+/** The caller's household with members and open invites, in one round trip (docs/performance.md §5). */
+export async function householdBundle(db: Db): Promise<HouseholdBundle> {
+  return must(await db.rpc("household_bundle"), "household") as unknown as HouseholdBundle;
+}

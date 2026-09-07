@@ -59,7 +59,7 @@ Implemented in the `perf/instrument` branch; the numbers above come from it.
 
 **Bench** (done): `scripts/bench.ts` (`deno task bench`, `--runs N`, `--no-store`, `--enforce`) runs a fixed script as the test user (floor 404, well-known, whoami, get_household, get_week, search_recipes, show_week, show_shopping_list), prints p50/p95 with the `Server-Timing` split and the number of worker ids seen, and stores the rows with the commit. `scripts/deploy.ts` runs it after every deploy. `.github/workflows/bench.yml` runs it every six hours with `--enforce` once the secrets `SUPABASE_SERVICE_ROLE_KEY` and `TEST_USER_PASSWORD` are set on the repo; until then the job skips itself. The probe (`deno task mcp … -v`) prints the same header per call.
 
-**Budgets** (first draft; with the bundle the floor, well-known and whoami are inside, the tools with four or more queries are still over, so `--enforce` stays off the deploy until the read tools are one RPC each):
+**Budgets** (first draft; every name is inside at p50 since the read bundles, the p95 flags that remain are single slow platform boots, so `--enforce` can go on the deploy once a few days of `perf_daily` confirm the p95):
 
 | Name | p95 budget |
 |---|---|
@@ -84,7 +84,7 @@ Implemented in the `perf/instrument` branch; the numbers above come from it.
 
 Done for the boot (ADR 0006): the function deploys as one module and the floor is 0.22 s. What is left, in order of leverage:
 
-1. **One RPC per read tool** instead of three to six PostgREST calls (done for the week: `week_bundle`, see the log; `get_household` and `search_recipes` next). From a fresh worker each call costs 100 to 150 ms and the first also pays the TLS handshake to the public gateway; `get_household` (4 calls), `search_recipes` (5) and `show_week` (6) spend 530 to 660 ms there. A Postgres function per tool, run as the caller so RLS still applies, brings each to one round trip: expect 400 to 500 ms off the heavy tools and the budgets within reach.
+1. **One RPC per read tool** instead of three to six PostgREST calls. Done: `week_bundle`, `household_bundle`, `recipe_scope`, `shopping_bundle`, `round_bundle` (see the log). Every read tool is inside its budget at p50. From a fresh worker each call costs 100 to 150 ms and the first also pays the TLS handshake to the public gateway; `get_household` (4 calls), `search_recipes` (5) and `show_week` (6) spend 530 to 660 ms there. A Postgres function per tool, run as the caller so RLS still applies, brings each to one round trip: expect 400 to 500 ms off the heavy tools and the budgets within reach.
 2. **Warm workers** would remove the remaining 0.2 s per request. Supabase ties the idle period to the plan; check what Pro gives before paying for it, since the bench answers the question in one run.
 3. **The view's second round trip**: the resource read pays the floor again. Check whether the host caches `ui://` resources across opens; if not, the resource must be as cheap as possible on our side (it already is: 7 ms).
 4. Not a lever: connection pooling. The function never opens a Postgres connection; supabase-js speaks HTTP to PostgREST, which holds its own pool. Hyperdrive is a Cloudflare Workers binding, and Supabase Edge Functions are Deno workers behind Cloudflare's CDN, not Workers.
@@ -123,3 +123,17 @@ Method: deployed `ping` (one line), `ping-sb` (imports supabase-js), `ping-heavy
 | get_week | 625 | 491 | 257 | 133 | 1 |
 
 p50 in ms, 3 runs, dev project. The same shape fits `get_household` (4 calls) and `search_recipes` (5).
+
+### 2026-09-07 · every read tool in one round trip
+
+Four more security-invoker functions, same shape as `week_bundle`: `household_bundle` (household, members, open invites), `recipe_scope` (cookbooks, the household's enabled flags, retired ids), `shopping_bundle` (the list with recipe titles) and `round_bundle` (a round with participants, who voted, candidate cards and every ranking entry; by id or the latest with a status). Each calls `ensure_household` itself, so no tool pays a separate household round trip. `search_recipes` keeps its filtered PostgREST query and is two calls; the round tools went from four to seven calls each to one or two.
+
+| Name | before | after | handle | db | calls |
+|---|---|---|---|---|---|
+| get_household | 768 | 496 | 273 | 76 | 1 |
+| search_recipes | 1023 | 626 | 368 | 216 | 2 |
+| show_shopping_list | 590 | 413 | 204 | 73 | 1 |
+| show_week | 460 | 417 | 202 | 84 | 1 |
+| get_week | 491 | 481 | 259 | 142 | 1 |
+
+p50 in ms, 3 runs, dev project. What is left per request is the 0.22 s boot, the host's own round trips, and 200 to 370 ms of handler time that is mostly the one PostgREST call from a cold worker (TLS to the public gateway included).

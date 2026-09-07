@@ -653,6 +653,7 @@ export type Database = {
     Functions: {
       cookbook_household: { Args: { cid: string }; Returns: string };
       ensure_household: { Args: never; Returns: string };
+      household_bundle: { Args: never; Returns: Json };
       household_is_untouched: { Args: { hid: string }; Returns: boolean };
       is_member_of: { Args: { hid: string }; Returns: boolean };
       join_household: {
@@ -665,7 +666,13 @@ export type Database = {
         }[];
       };
       plan_household: { Args: { pid: string }; Returns: string };
+      recipe_scope: { Args: never; Returns: Json };
+      round_bundle: {
+        Args: { rid: string; want: Database["public"]["Enums"]["round_status"] };
+        Returns: Json;
+      };
       round_household: { Args: { rid: string }; Returns: string };
+      shopping_bundle: { Args: never; Returns: Json };
       week_bundle: { Args: { monday: string }; Returns: Json };
     };
     Enums: {
