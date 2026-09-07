@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>chef-gpt · Wall planner, notes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Caveat:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --desk: #d9d2c4;
+        --paper: #f4efe6;
+        --paper-2: #fbf8f2;
+        --rule: #c9c3b6;
+        --rule-soft: #e2dccf;
+        --print: #3d3a34;
+        --print-muted: #7a746a;
+        --ink: #1d3b8a;
+        --ink-red: #c2262e;
+        --sticky: #fff3a6;
+        --sticky-ink: #4a4020;
+        --btn-fg: #f4efe6;
+        --focus: #1d3b8a;
+        --shadow: rgba(50, 40, 20, 0.18);
+        --label: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
+        --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+        --pen: "Caveat", "Bradley Hand", "Comic Sans MS", cursive;
+        --t-s: #ffd700;
+        --t-a: #ef4444;
+        --t-b: #f97316;
+        --t-c: #eab308;
+        --t-d: #22c55e;
+        --t-f: #3b82f6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --desk: #15171a;
+          --paper: #23262b;
+          --paper-2: #2b2f35;
+          --rule: #4a4f57;
+          --rule-soft: #34383f;
+          --print: #ecebe6;
+          --print-muted: #a6a49c;
+          --ink: #dfe7ff;
+          --ink-red: #ff7b7b;
+          --sticky: #e8d86a;
+          --sticky-ink: #2b2508;
+          --btn-fg: #15171a;
+          --focus: #ffd700;
+          --shadow: rgba(0, 0, 0, 0.5);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        overflow-x: clip;
+      }
+      body {
+        margin: 0;
+        background: var(--desk);
+        color: var(--print);
+        font: 17px/1.55 var(--body);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: inherit;
+      }
+
+      /* ── the sheet ─────────────────────────────────────────── */
+      .sheet {
+        position: relative;
+        max-width: 1180px;
+        margin: 40px auto 64px;
+        background: var(--paper);
+        box-shadow: 0 18px 50px var(--shadow);
+        padding: 0 48px 48px 96px;
+        min-width: 0;
+      }
+      .sheet::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 64px;
+        border-right: 1px solid var(--rule);
+        background: radial-gradient(circle at 32px 50%, var(--desk) 9px, transparent 10px) 0 0 / 64px 160px repeat-y;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 16px;
+        padding: 30px 0 12px;
+        border-bottom: 2px solid var(--print);
+        min-width: 0;
+      }
+      header .brand {
+        font: 700 30px/1 var(--label);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        text-decoration: none;
+      }
+      header nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        font: 600 15px/1 var(--label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+      header nav a {
+        text-decoration: none;
+      }
+      h1 {
+        font: 600 16px/1 var(--label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        margin: 22px 0 14px;
+      }
+      h1 b {
+        color: var(--print);
+        font-weight: 700;
+        margin-right: 14px;
+      }
+
+      /* ── hero: the week and the stack ──────────────────────── */
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 8fr) minmax(0, 3fr);
+        gap: 36px;
+        align-items: start;
+      }
+      .hero > * {
+        min-width: 0;
+      }
+      .week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        border: 2px solid var(--print);
+        background: var(--paper-2);
+        background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--rule-soft) 27px 28px);
+        min-width: 0;
+      }
+      .day {
+        position: relative;
+        border-right: 1px solid var(--rule);
+        min-height: 236px;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .day:last-child {
+        border-right: 0;
+      }
+      .day.weekend {
+        background: rgba(120, 100, 60, 0.05);
+      }
+      .head {
+        font: 600 14px/1 var(--label);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        padding: 8px 8px 0;
+      }
+      .head b {
+        display: block;
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--print);
+        font-variant-numeric: tabular-nums;
+        margin-top: 2px;
+        line-height: 1;
+      }
+      .slot {
+        flex: 1;
+        padding: 12px 6px 8px;
+        min-width: 0;
+      }
+      .written {
+        font: 500 21px/1.15 var(--pen);
+        color: var(--ink-red);
+        padding: 4px 4px 0;
+        overflow-wrap: anywhere;
+      }
+      /* the whole day becomes a target once a note is picked up */
+      .drop {
+        position: absolute;
+        inset: 0;
+        border: 0;
+        background: transparent;
+        color: transparent;
+        font: 600 14px/1 var(--label);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        cursor: default;
+        padding: 0;
+      }
+      .picking .drop:enabled {
+        cursor: pointer;
+        color: var(--ink);
+        background: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(29, 59, 138, 0.06) 6px 8px);
+        outline: 2px dashed var(--ink);
+        outline-offset: -6px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: 12px;
+      }
+      .drop:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: -4px;
+      }
+      .day.over .drop {
+        background: rgba(29, 59, 138, 0.1);
+      }
+
+      /* ── the stack ─────────────────────────────────────────── */
+      .aside {
+        display: grid;
+        gap: 12px;
+      }
+      .hint {
+        font: 500 24px/1.15 var(--pen);
+        color: var(--ink);
+        margin: 0;
+        transform: rotate(-1.5deg);
+        transform-origin: left;
+      }
+      .stack {
+        position: relative;
+        height: 220px;
+        min-width: 0;
+      }
+      .note {
+        position: absolute;
+        left: 0;
+        top: calc(var(--i) * 14px);
+        width: min(100%, 250px);
+        padding: 12px 14px 14px;
+        background: var(--sticky);
+        color: var(--sticky-ink);
+        box-shadow: 3px 6px 14px var(--shadow);
+        transform: rotate(var(--r));
+        font: 500 18px/1.2 var(--pen);
+        text-align: left;
+        border: 0;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        min-width: 0;
+        transition: transform 200ms ease, box-shadow 200ms ease;
+        z-index: calc(3 - var(--i));
+      }
+      .note::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -8px;
+        width: 46px;
+        height: 14px;
+        margin-left: -23px;
+        background: rgba(255, 255, 255, 0.45);
+        transform: rotate(-2deg);
+      }
+      .note .n {
+        font: 700 14px/1 var(--label);
+        letter-spacing: 0.1em;
+        color: var(--print-muted);
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+      .note .t {
+        display: block;
+        font-size: 19px;
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+      }
+      .note .tiers {
+        display: flex;
+        gap: 5px;
+        margin-top: 8px;
+      }
+      .note .tiers i {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+      }
+      .note:hover {
+        transform: rotate(var(--r)) translateY(-2px);
+      }
+      .note:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+      .note.picked {
+        box-shadow: 6px 12px 24px var(--shadow);
+        transform: rotate(0deg) scale(1.03);
+      }
+      .note.dragging {
+        position: fixed;
+        left: 0;
+        top: 0;
+        margin: 0;
+        z-index: 50;
+        cursor: grabbing;
+        pointer-events: none;
+        transition: none;
+        box-shadow: 8px 16px 28px var(--shadow);
+        transform: translate(var(--x), var(--y)) rotate(var(--r));
+      }
+      /* a note on a day */
+      .slot .note {
+        position: relative;
+        top: auto;
+        width: 100%;
+        padding: 10px 8px 10px;
+        transform: rotate(var(--r));
+        z-index: 1;
+      }
+      .slot .note .t {
+        font-size: 17px;
+      }
+      .slot .note::before {
+        width: 32px;
+        margin-left: -16px;
+      }
+      .slot .note.dragging {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: auto;
+        transform: translate(var(--x), var(--y)) rotate(var(--r));
+      }
+      .settle {
+        transition: transform 200ms ease;
+      }
+      .reset {
+        font: 600 14px/1 var(--label);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        justify-self: start;
+      }
+      .legend {
+        font-size: 13px;
+        color: var(--print-muted);
+        margin: 0;
+      }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      /* ── below the grid ────────────────────────────────────── */
+      .rule-line {
+        font: 500 clamp(22px, 2.6vw, 30px) / 1.15 var(--pen);
+        color: var(--ink);
+        margin: 22px 0 0;
+        transform: rotate(-0.8deg);
+        transform-origin: left;
+      }
+      .intro {
+        display: grid;
+        grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+        gap: 36px;
+        align-items: end;
+        padding: 36px 0 8px;
+        border-bottom: 2px solid var(--print);
+      }
+      .intro > * {
+        min-width: 0;
+      }
+      .lede {
+        max-width: 60ch;
+        margin: 0;
+        font-size: 18px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        align-items: center;
+        justify-content: flex-end;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 20px;
+        border: 2px solid var(--print);
+        color: var(--print);
+        font: 600 16px/1 var(--label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+        min-width: 0;
+      }
+      .btn.ink {
+        border-color: var(--ink);
+        background: var(--ink);
+        color: var(--paper);
+      }
+      .lines {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0 48px;
+        padding: 8px 0 0;
+      }
+      .lines > * {
+        min-width: 0;
+      }
+      .lines h2 {
+        font: 700 22px/1 var(--label);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin: 24px 0 6px;
+      }
+      .lines ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: n;
+      }
+      .lines li {
+        counter-increment: n;
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--rule);
+        font-size: 16px;
+      }
+      .lines li::before {
+        content: counter(n);
+        font: 700 28px/1 var(--label);
+        color: var(--ink);
+      }
+      .lines li b {
+        font-weight: 600;
+      }
+      .lines .pen {
+        font: 500 19px/1.2 var(--pen);
+        color: var(--ink);
+      }
+      footer {
+        margin-top: 40px;
+        font: 600 13px/1.6 var(--label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+      footer a {
+        text-decoration: none;
+      }
+
+      @media (max-width: 1000px) {
+        .hero {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .aside {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          align-items: start;
+        }
+        .stack {
+          grid-row: 1 / 3;
+          grid-column: 2;
+        }
+      }
+      @media (max-width: 720px) {
+        .sheet {
+          margin: 0;
+          padding: 0 20px 40px;
+        }
+        .sheet::before {
+          display: none;
+        }
+        .hero {
+          gap: 20px;
+        }
+        .aside {
+          grid-template-columns: minmax(0, 1fr);
+          order: -1;
+        }
+        .stack {
+          grid-row: auto;
+          grid-column: auto;
+          height: 196px;
+        }
+        .week {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .day {
+          min-height: 0;
+          flex-direction: row;
+          align-items: center;
+          border-right: 0;
+          border-bottom: 1px solid var(--rule);
+        }
+        .day:last-child {
+          border-bottom: 0;
+        }
+        .head {
+          flex: 0 0 76px;
+          padding: 8px 10px;
+        }
+        .slot {
+          padding: 8px 10px 8px 0;
+          min-height: 52px;
+          display: flex;
+          align-items: center;
+        }
+        .slot .note {
+          padding: 8px 10px;
+        }
+        .picking .drop:enabled {
+          justify-content: flex-end;
+          align-items: center;
+          padding: 0 12px 0 0;
+        }
+        .intro,
+        .lines {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .actions {
+          justify-content: flex-start;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .note,
+        .settle {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <header>
+        <a class="brand" href="#">chef-gpt</a>
+        <nav>
+          <a href="#how">How it works</a>
+          <a href="#setup">Set up</a>
+          <a href="#setup">Sign in</a>
+        </nav>
+      </header>
+
+      <h1><b>Week 36 · Monday start</b> Vote on dinners, plan the week, keep the shopping list.</h1>
+
+      <section class="hero" aria-label="This week">
+        <div class="week" id="week">
+          <div class="day" data-day="Monday">
+            <div class="head">Mon <b>31</b></div>
+            <div class="slot"></div>
+            <button class="drop" type="button" aria-label="Put it on Monday" disabled>Put it here</button>
+          </div>
+          <div class="day" data-day="Tuesday">
+            <div class="head">Tue <b>01</b></div>
+            <div class="slot"></div>
+            <button class="drop" type="button" aria-label="Put it on Tuesday" disabled>Put it here</button>
+          </div>
+          <div class="day taken" data-day="Wednesday">
+            <div class="head">Wed <b>02</b></div>
+            <div class="slot"><div class="written">eating out</div></div>
+          </div>
+          <div class="day" data-day="Thursday">
+            <div class="head">Thu <b>03</b></div>
+            <div class="slot"></div>
+            <button class="drop" type="button" aria-label="Put it on Thursday" disabled>Put it here</button>
+          </div>
+          <div class="day" data-day="Friday">
+            <div class="head">Fri <b>04</b></div>
+            <div class="slot"></div>
+            <button class="drop" type="button" aria-label="Put it on Friday" disabled>Put it here</button>
+          </div>
+          <div class="day weekend" data-day="Saturday">
+            <div class="head">Sat <b>05</b></div>
+            <div class="slot"></div>
+            <button class="drop" type="button" aria-label="Put it on Saturday" disabled>Put it here</button>
+          </div>
+          <div class="day weekend" data-day="Sunday">
+            <div class="head">Sun <b>06</b></div>
+            <div class="slot"></div>
+            <button class="drop" type="button" aria-label="Put it on Sunday" disabled>Put it here</button>
+          </div>
+        </div>
+
+        <div class="aside">
+          <p class="hint">The round is closed. Put a dinner on a day.</p>
+          <div class="stack" id="stack">
+            <button class="note" type="button" style="--i: 0; --r: -2.5deg" data-short="Chorizo pasta" aria-pressed="false">
+              <span class="n"><span>1</span><span>13 p</span></span>
+              <span class="t">Hurtig chorizo- og harissaspaghetti</span>
+              <span class="tiers" aria-label="Björn S, Emma A, Noah B"><i style="background: var(--t-s)"></i><i style="background: var(--t-a)"></i><i style="background: var(--t-b)"></i></span>
+            </button>
+            <button class="note" type="button" style="--i: 1; --r: 1.8deg" data-short="Tofu bowl" aria-pressed="false">
+              <span class="n"><span>2</span><span>11 p</span></span>
+              <span class="t">Asiatisk avocado- og tofubowl</span>
+              <span class="tiers" aria-label="Björn A, Emma S, Noah C"><i style="background: var(--t-a)"></i><i style="background: var(--t-s)"></i><i style="background: var(--t-c)"></i></span>
+            </button>
+            <button class="note" type="button" style="--i: 2; --r: -1deg" data-short="Kalkun pasta" aria-pressed="false">
+              <span class="n"><span>3</span><span>6 p</span></span>
+              <span class="t">Kalkun med spaghetti…</span>
+              <span class="tiers" aria-label="Björn B, Emma A, Noah F"><i style="background: var(--t-b)"></i><i style="background: var(--t-a)"></i><i style="background: var(--t-f)"></i></span>
+            </button>
+          </div>
+          <p class="legend">Dots are Björn, Emma and Noah's tiers. Points are the sum.</p>
+          <a class="reset" href="#" id="reset">Reset</a>
+          <p class="sr" aria-live="polite" id="live"></p>
+        </div>
+      </section>
+
+      <p class="rule-line">There is no winner. People choose from the list by hand.</p>
+
+      <section class="intro">
+        <p class="lede">
+          chef-gpt is household meal planning inside Claude Desktop. Your household ranks the candidates, the
+          week fills itself from the ranked list, and the ingredients land on one shopping list. Click in the
+          apps, or just ask.
+        </p>
+        <div class="actions">
+          <a class="btn ink" href="#setup">Sign in and add the connector</a>
+          <a class="btn" href="#how">See how it works</a>
+        </div>
+      </section>
+
+      <section class="lines">
+        <div id="how">
+          <h2>Where the notes came from</h2>
+          <ol>
+            <li>
+              <div>
+                <b>Start a round.</b> Pick eight candidate dinners from your cookbooks, choose who votes.
+                <span class="pen">"Start a voting round with eight quick weeknight dinners for everyone."</span>
+              </div>
+            </li>
+            <li>
+              <div>
+                <b>Everyone ranks.</b> Each participant drags every candidate into a tier: S, A, B, C, D, F or
+                GARBAGE. Results stay hidden until the round closes.
+              </div>
+            </li>
+          </ol>
+        </div>
+        <div id="setup">
+          <h2>Set up in three steps</h2>
+          <ol>
+            <li><div><b>Sign in</b> here with Google or a magic link. That creates your household.</div></li>
+            <li>
+              <div>
+                <b>Add the connector</b> in Claude Desktop: Settings → Connectors → Add custom connector, and
+                paste the connector URL shown after you sign in.
+              </div>
+            </li>
+            <li>
+              <div>
+                <b>Approve.</b> Claude brings you back here to authorize it. Then open a new chat and say "set up
+                my household".
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <footer>
+        chef-gpt · Household meal planning as MCP Apps ·
+        <a href="https://github.com/tangerine-labs/chef-gpt">Source on GitHub</a> · <a href="#setup">Sign in</a>
+      </footer>
+    </main>
+
+    <script>
+      (() => {
+        const stack = document.getElementById("stack");
+        const live = document.getElementById("live");
+        const notes = [...stack.querySelectorAll(".note")];
+        const days = [...document.querySelectorAll(".day:not(.taken)")];
+        const home = new Map(notes.map((n) => [n, n.style.cssText]));
+        let picked = null;
+
+        const say = (text) => {
+          live.textContent = "";
+          requestAnimationFrame(() => {
+            live.textContent = text;
+          });
+        };
+        const clearOver = () => {
+          for (const d of days) d.classList.remove("over");
+        };
+        const setPicked = (note) => {
+          if (picked) {
+            picked.classList.remove("picked");
+            picked.setAttribute("aria-pressed", "false");
+          }
+          picked = note;
+          document.body.classList.toggle("picking", !!note);
+          for (const d of days) d.querySelector(".drop").disabled = !note;
+          if (note) {
+            note.classList.add("picked");
+            note.setAttribute("aria-pressed", "true");
+          }
+        };
+        /* FLIP: move the node, then animate from where it was */
+        const move = (note, parent, after) => {
+          const first = note.getBoundingClientRect();
+          parent.appendChild(note);
+          after();
+          const last = note.getBoundingClientRect();
+          const dx = first.left - last.left;
+          const dy = first.top - last.top;
+          if (!dx && !dy) return;
+          note.classList.remove("settle");
+          note.style.transition = "none";
+          note.style.transform = `translate(${dx}px, ${dy}px)`;
+          requestAnimationFrame(() => {
+            note.style.transition = "";
+            note.style.transform = "";
+            note.classList.add("settle");
+          });
+        };
+        const toStack = (note, quiet) => {
+          move(note, stack, () => (note.style.cssText = home.get(note)));
+          if (!quiet) say(`${note.dataset.short} back on the stack`);
+        };
+        const place = (note, day) => {
+          const slot = day.querySelector(".slot");
+          const other = slot.querySelector(".note");
+          if (other && other !== note) toStack(other, true);
+          move(note, slot, () => {
+            note.style.cssText = `--r: ${(Math.random() * 3 - 1.5).toFixed(1)}deg`;
+          });
+          say(`${note.dataset.short} on ${day.dataset.day}`);
+        };
+
+        /* pointer drag */
+        for (const note of notes) {
+          let start = null;
+          let moved = false;
+          let swallowClick = false;
+          note.addEventListener("pointerdown", (e) => {
+            if (e.button) return;
+            start = { x: e.clientX, y: e.clientY, r: note.getBoundingClientRect() };
+            moved = false;
+            note.setPointerCapture(e.pointerId);
+          });
+          note.addEventListener("pointermove", (e) => {
+            if (!start) return;
+            const dx = e.clientX - start.x;
+            const dy = e.clientY - start.y;
+            if (!moved && Math.hypot(dx, dy) < 6) return;
+            if (!moved) {
+              moved = true;
+              setPicked(null);
+              note.classList.add("dragging");
+              note.style.width = `${start.r.width}px`;
+            }
+            note.style.setProperty("--x", `${start.r.left + dx}px`);
+            note.style.setProperty("--y", `${start.r.top + dy}px`);
+            clearOver();
+            const day = document.elementFromPoint(e.clientX, e.clientY)?.closest(".day:not(.taken)");
+            if (day) day.classList.add("over");
+          });
+          const finish = (e) => {
+            if (!start) return;
+            const wasMoved = moved;
+            start = null;
+            clearOver();
+            if (!wasMoved) return; /* a tap: the click handler picks it up */
+            swallowClick = true; /* the click that follows a drag is not a pick */
+            note.classList.remove("dragging");
+            note.style.removeProperty("--x");
+            note.style.removeProperty("--y");
+            note.style.width = "";
+            const day = document.elementFromPoint(e.clientX, e.clientY)?.closest(".day:not(.taken)");
+            if (day) place(note, day);
+            else if (note.parentElement !== stack) toStack(note);
+            else note.style.cssText = home.get(note);
+          };
+          note.addEventListener("pointerup", finish);
+          note.addEventListener("pointercancel", finish);
+          note.addEventListener("click", () => {
+            if (swallowClick) {
+              swallowClick = false;
+              return;
+            }
+            setPicked(picked === note ? null : note);
+          });
+        }
+
+        /* tap / keyboard: pick a note, then a day */
+        for (const day of days) {
+          day.querySelector(".drop").addEventListener("click", () => {
+            if (!picked) return;
+            const note = picked;
+            setPicked(null);
+            place(note, day);
+            note.focus({ preventScroll: true });
+          });
+        }
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && picked) setPicked(null);
+        });
+        document.getElementById("reset").addEventListener("click", (e) => {
+          e.preventDefault();
+          setPicked(null);
+          for (const n of notes) if (n.parentElement !== stack) toStack(n, true);
+          say("All dinners back on the stack");
+        });
+      })();
+    </script>
+  </body>
+</html>

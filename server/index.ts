@@ -27,22 +27,6 @@ const server = new MCPServer({
 
 server.tool(
   {
-    name: "hello",
-    title: "Hello",
-    annotations: hints.read,
-    description: "Smoke-test tool: greets the caller in a view.",
-    inputSchema: z.object({ name: z.string().describe("Who to greet") }),
-    outputSchema: z.object({ greeting: z.string() }),
-    view: { name: "hello", description: "Greeting view" },
-  },
-  ({ name }) => {
-    const greeting = `Hello, ${name}!`;
-    return { content: [{ type: "text", text: greeting }], structuredContent: { greeting } };
-  },
-);
-
-server.tool(
-  {
     name: "whoami",
     title: "Who am I",
     annotations: hints.read,

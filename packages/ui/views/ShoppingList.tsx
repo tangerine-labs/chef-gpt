@@ -1,5 +1,12 @@
+/**
+ * Shopping list: the household's one running list as a spiral-bound notepad sheet, torn at the
+ * bottom and taped to the desk. One item per rule, a pen tick to check, a small pen note naming
+ * the recipe the item came from. Checked items are struck in pen and stay until cleared.
+ * Signal materials, see docs/design-system.md.
+ */
 import { useState } from "react";
-import css from "./shared.module.css";
+import "../signal.css";
+import css from "./signal.module.css";
 import { errorText, type ShoppingList as ListT, type ShoppingItem } from "./types.ts";
 
 export interface ShoppingListProps {
@@ -9,6 +16,12 @@ export interface ShoppingListProps {
   onAdd: (name: string) => Promise<ListT>;
   onClear: () => Promise<ListT>;
 }
+
+const Tick = () => (
+  <svg viewBox="0 0 24 22" aria-hidden="true">
+    <path d="M4 12 L9.5 18 L21 3" />
+  </svg>
+);
 
 export function ShoppingListView({ list, onToggle, onAdd, onClear }: ShoppingListProps) {
   const [state, setState] = useState<ListT | null>(null);
@@ -46,47 +59,68 @@ export function ShoppingListView({ list, onToggle, onAdd, onClear }: ShoppingLis
   };
 
   return (
-    <main className={css.app}>
-      <h1 className={css.h}>Shopping list ({out.uncheckedCount})</h1>
-      <div className={css.row}>
-        <input
-          className={css.input}
-          placeholder="Add an item…"
-          value={text}
-          onChange={(e) => setText(e.currentTarget.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") add();
-          }}
-        />
-        <button type="button" className={css.btn} disabled={!text.trim()} onClick={add}>
-          Add
-        </button>
-      </div>
-      <div className={css.list} style={{ maxHeight: 420 }}>
-        {out.items.map((i) => (
-          <label key={i.id} className={css.card} style={{ cursor: "pointer", opacity: i.checked ? 0.6 : 1 }}>
+    <div className={css.desk}>
+      <div className={css.padWrap}>
+        <div className={`${css.pad} ${css.tapedCorners}`}>
+          <div className={css.padSpiral} aria-hidden="true" />
+          <div className={css.padHead}>
+            <h1 className={css.padTitle}>Shopping list</h1>
+            <p className={css.labelMuted}>{out.uncheckedCount} to buy</p>
+          </div>
+
+          {out.items.length === 0 ? (
+            <div className={css.padEmpty}>Nothing on the list.</div>
+          ) : (
+            out.items.map((i) => (
+              <button
+                key={i.id}
+                type="button"
+                className={`${css.item} ${i.checked ? css.done : ""}`}
+                aria-pressed={i.checked}
+                onClick={() => toggle(i)}
+              >
+                <span className={css.box} aria-hidden="true">
+                  {i.checked ? <Tick /> : null}
+                </span>
+                <span className={css.itemText}>
+                  {(i.quantity || i.unit) && (
+                    <span className={css.qty}>{[i.quantity, i.unit].filter(Boolean).join(" ")}</span>
+                  )}
+                  <span className={css.itemName}>{i.name}</span>
+                  {i.recipeTitle && (
+                    <span className={css.from} title={i.recipeTitle}>
+                      {i.recipeTitle}
+                    </span>
+                  )}
+                </span>
+              </button>
+            ))
+          )}
+
+          <div className={css.addRow}>
+            <span className={css.box} aria-hidden="true" />
             <input
-              type="checkbox"
-              checked={i.checked}
-              onChange={() => toggle(i)}
-              style={{ width: 20, height: 20, margin: 0, flex: "none" }}
+              className={css.penInput}
+              placeholder="add an item…"
+              aria-label="Add an item"
+              value={text}
+              onChange={(e) => setText(e.currentTarget.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") add();
+              }}
             />
-            <span className={css.grow}>
-              <span className={css.title} style={{ textDecoration: i.checked ? "line-through" : "none" }}>
-                {[i.quantity, i.unit, i.name].filter(Boolean).join(" ")}
-              </span>
-              {i.recipeTitle && <span className={css.meta}> · {i.recipeTitle}</span>}
-            </span>
-          </label>
-        ))}
-        {out.items.length === 0 && <p className={css.sub}>Nothing on the list.</p>}
+          </div>
+
+          <div className={css.padFoot}>
+            <p className={css.err}>{error}</p>
+            {checkedCount > 0 && (
+              <button type="button" className={css.btn} onClick={() => run(onClear)}>
+                Clear {checkedCount} bought
+              </button>
+            )}
+          </div>
+        </div>
       </div>
-      {checkedCount > 0 && (
-        <button type="button" className={css.btn} onClick={() => run(onClear)}>
-          Clear {checkedCount} checked
-        </button>
-      )}
-      <p className={css.err}>{error}</p>
-    </main>
+    </div>
   );
 }

@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>chef-gpt · Planner sheet</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Caveat:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --desk: #d9d2c4;
+        --paper: #f4efe6;
+        --paper-2: #fbf8f2;
+        --rule: #c9c3b6;
+        --rule-soft: #e2dccf;
+        --print: #3d3a34;
+        --print-muted: #7a746a;
+        --ink: #1d3b8a;
+        --ink-soft: #5b6b9a;
+        --ink-red: #c2262e;
+        --sticky: #fff3a6;
+        --sticky-ink: #4a4020;
+        --btn-fg: #f4efe6;
+        --shadow: rgba(50, 40, 20, 0.18);
+        --label: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
+        --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+        --pen: "Caveat", "Bradley Hand", "Comic Sans MS", cursive;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --desk: #15171a;
+          --paper: #23262b;
+          --paper-2: #2b2f35;
+          --rule: #4a4f57;
+          --rule-soft: #34383f;
+          --print: #ecebe6;
+          --print-muted: #a6a49c;
+          --ink: #dfe7ff;
+          --ink-soft: #a9b6dc;
+          --ink-red: #ff7b7b;
+          --sticky: #e8d86a;
+          --sticky-ink: #2b2508;
+          --btn-fg: #15171a;
+          --shadow: rgba(0, 0, 0, 0.5);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        overflow-x: clip;
+      }
+      body {
+        margin: 0;
+        background: var(--desk);
+        color: var(--print);
+        font: 17px/1.55 var(--body);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: inherit;
+      }
+
+      /* ── the sheet ─────────────────────────────────────────── */
+      .sheet {
+        position: relative;
+        max-width: 1040px;
+        margin: 48px auto 72px;
+        padding: 0 48px 48px 104px;
+        background: var(--paper);
+        box-shadow: 0 18px 50px var(--shadow);
+        min-width: 0;
+      }
+      .sheet::before {
+        /* punched-hole margin */
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 64px;
+        border-right: 1px solid var(--rule);
+        background: radial-gradient(circle at 32px 50%, var(--desk) 9px, transparent 10px) 0 0 / 64px 160px repeat-y;
+      }
+
+      /* ── title strip ───────────────────────────────────────── */
+      .strip {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 16px;
+        padding: 34px 0 8px;
+        font: 600 14px/1 var(--label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        min-width: 0;
+      }
+      .strip b {
+        font-weight: 700;
+        color: var(--print);
+      }
+      h1 {
+        font: 700 clamp(40px, 6vw, 72px) / 0.96 var(--label);
+        text-transform: uppercase;
+        letter-spacing: 0.01em;
+        margin: 0 0 28px;
+        padding-bottom: 18px;
+        border-bottom: 2px solid var(--print);
+        text-wrap: balance;
+        max-width: 14ch;
+      }
+
+      /* ── the week ──────────────────────────────────────────── */
+      .planner {
+        position: relative;
+        min-width: 0;
+      }
+      .week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        border: 2px solid var(--print);
+        background: var(--paper-2);
+        background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--rule-soft) 27px 28px);
+        min-width: 0;
+      }
+      .day {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-height: 236px;
+        min-width: 0;
+        border-right: 1px solid var(--rule);
+      }
+      .day:last-child {
+        border-right: 0;
+      }
+      .day.weekend {
+        background: rgba(120, 100, 60, 0.05);
+      }
+      .head {
+        font: 600 13px/1 var(--label);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        padding: 8px 8px 0;
+      }
+      .head b {
+        display: block;
+        margin-top: 2px;
+        font-size: 30px;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--print);
+        font-variant-numeric: tabular-nums;
+      }
+      .written {
+        display: block;
+        margin: 10px 8px 0;
+        font: 500 21px/1.15 var(--pen);
+        color: var(--ink);
+        min-width: 0;
+        overflow-wrap: anywhere;
+        outline: none;
+        border-radius: 3px;
+      }
+      .written:focus-visible {
+        box-shadow: 0 0 0 2px var(--paper-2), 0 0 0 4px var(--ink);
+      }
+      .written.red {
+        color: var(--ink-red);
+        text-decoration: line-through;
+        text-decoration-thickness: 2px;
+      }
+      .written.red + .written {
+        margin-top: 2px;
+      }
+      .written.faint {
+        color: var(--print-muted);
+        font-size: 18px;
+      }
+      /* marginalia: who said so, revealed in the slot's margin */
+      .note {
+        margin: auto 8px 8px;
+        padding-top: 6px;
+        border-top: 1px solid var(--rule);
+        font: 500 15px/1.2 var(--pen);
+        color: var(--ink-soft);
+        opacity: 0;
+        transition: opacity 140ms ease-out;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .day:hover .note,
+      .day:focus-within .note {
+        opacity: 1;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .note {
+          transition: none;
+        }
+      }
+
+      /* ── sticky note in the margin ─────────────────────────── */
+      .sticky {
+        position: absolute;
+        right: 8px;
+        top: -300px;
+        width: 232px;
+        padding: 14px 16px 16px;
+        background: var(--sticky);
+        color: var(--sticky-ink);
+        box-shadow: 3px 6px 14px var(--shadow);
+        transform: rotate(-2deg);
+        font: 500 18px/1.2 var(--pen);
+      }
+      .sticky::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -10px;
+        width: 60px;
+        height: 18px;
+        margin-left: -30px;
+        background: rgba(255, 255, 255, 0.45);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        transform: rotate(-3deg);
+      }
+      .sticky .t {
+        font: 600 12px/1 var(--label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+        opacity: 0.75;
+      }
+      .sticky ol {
+        margin: 0;
+        padding-left: 1.2em;
+      }
+      .sticky li {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        min-width: 0;
+        font-variant-numeric: tabular-nums;
+      }
+      .sticky li span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+      }
+      .sticky .no {
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px dashed rgba(0, 0, 0, 0.25);
+        font-size: 15px;
+      }
+
+      /* ── three ruled lines ─────────────────────────────────── */
+      .lines {
+        margin-top: 40px;
+        border-top: 1px solid var(--rule);
+      }
+      .line {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        gap: 24px;
+        padding: 22px 0;
+        border-bottom: 1px solid var(--rule);
+        min-width: 0;
+      }
+      .line > * {
+        min-width: 0;
+      }
+      .line .k {
+        font: 600 13px/1.6 var(--label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        padding-top: 4px;
+      }
+      .line p {
+        margin: 0;
+        max-width: 62ch;
+      }
+      .line ol {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        counter-reset: s;
+        max-width: 62ch;
+      }
+      .line li {
+        counter-increment: s;
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        gap: 8px;
+        padding: 4px 0;
+      }
+      .line li::before {
+        content: counter(s);
+        font: 700 22px/1.2 var(--label);
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+      .line li b {
+        font-weight: 600;
+      }
+      .line .pen {
+        font: 500 24px/1.2 var(--pen);
+        color: var(--ink);
+        transform: rotate(-0.8deg);
+        transform-origin: left;
+      }
+
+      /* ── actions, footer ───────────────────────────────────── */
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        align-items: center;
+        margin-top: 32px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 13px 22px;
+        border: 2px solid var(--print);
+        color: var(--print);
+        font: 600 16px/1 var(--label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+        min-width: 0;
+      }
+      .btn.ink {
+        border-color: var(--ink);
+        background: var(--ink);
+        color: var(--paper);
+      }
+      footer {
+        margin-top: 40px;
+        padding-top: 14px;
+        border-top: 2px solid var(--print);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        font: 600 13px/1.5 var(--label);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+      footer a {
+        text-decoration: none;
+      }
+      footer a:hover {
+        color: var(--print);
+      }
+
+      /* ── narrow ────────────────────────────────────────────── */
+      @media (max-width: 1100px) {
+        .sticky {
+          position: static;
+          transform: rotate(-1.5deg);
+          margin: 26px 0 0 auto;
+        }
+      }
+      @media (max-width: 720px) {
+        .sheet {
+          margin: 0;
+          padding: 0 20px 36px;
+          box-shadow: none;
+        }
+        .sheet::before {
+          display: none;
+        }
+        .week {
+          grid-template-columns: minmax(0, 1fr);
+          background-image: none;
+        }
+        .day {
+          min-height: 0;
+          display: grid;
+          grid-template-columns: 56px minmax(0, 1fr);
+          grid-template-rows: auto auto;
+          column-gap: 12px;
+          padding: 10px 10px 12px;
+          border-right: 0;
+          border-bottom: 1px solid var(--rule);
+        }
+        .day:last-child {
+          border-bottom: 0;
+        }
+        .head {
+          grid-row: 1 / span 2;
+          padding: 0;
+        }
+        .written {
+          margin: 2px 0 0;
+        }
+        .written.red + .written {
+          grid-column: 2;
+        }
+        .note {
+          grid-column: 2;
+          margin: 6px 0 0;
+          opacity: 1;
+        }
+        .line {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 6px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sheet">
+      <div class="strip">
+        <span>Week 36 · Monday start</span>
+        <b>chef-gpt</b>
+      </div>
+      <h1>Vote on dinners, plan the week, keep the shopping list.</h1>
+
+      <div class="planner">
+        <div class="week" aria-label="Week of 2026-08-31">
+          <div class="day">
+            <div class="head">Mon<b>31</b></div>
+            <span class="written" tabindex="0">Asiatisk avocado- og tofubowl</span>
+            <div class="note">from the ranked list, 2nd</div>
+          </div>
+          <div class="day">
+            <div class="head">Tue<b>01</b></div>
+            <span class="written" tabindex="0">Hurtig chorizo- og harissaspaghetti</span>
+            <div class="note">Björn: “Tuesday is the chorizo pasta”</div>
+          </div>
+          <div class="day">
+            <div class="head">Wed<b>02</b></div>
+            <span class="written red" tabindex="0">Pandekager</span>
+            <span class="written">eating out</span>
+            <div class="note">Emma: “we're eating out Wednesday”</div>
+          </div>
+          <div class="day">
+            <div class="head">Thu<b>03</b></div>
+            <span class="written" tabindex="0">Kalkun med spaghetti…</span>
+            <div class="note">from the ranked list, 3rd</div>
+          </div>
+          <div class="day">
+            <div class="head">Fri<b>04</b></div>
+            <span class="written faint">—</span>
+          </div>
+          <div class="day weekend">
+            <div class="head">Sat<b>05</b></div>
+            <span class="written" tabindex="0">Pandekager</span>
+            <div class="note">Noah asked for pancakes</div>
+          </div>
+          <div class="day weekend">
+            <div class="head">Sun<b>06</b></div>
+            <span class="written faint">—</span>
+          </div>
+        </div>
+        <div class="sticky" aria-label="Ranked list">
+          <div class="t">Ranked list · week 36</div>
+          <ol>
+            <li><span>Hurtig chorizo- og harissaspaghetti</span><span>13</span></li>
+            <li><span>Asiatisk avocado- og tofubowl</span><span>11</span></li>
+            <li><span>Kalkun med spaghetti…</span><span>6</span></li>
+          </ol>
+          <div class="no">no winner — pick by hand ✎</div>
+        </div>
+      </div>
+
+      <div class="lines">
+        <div class="line">
+          <div class="k">What this is</div>
+          <p>
+            chef-gpt is household meal planning inside Claude Desktop. Your household ranks the candidates, the week
+            fills itself from the ranked list, and the ingredients land on one shopping list. Click in the apps, or
+            just ask.
+          </p>
+        </div>
+        <div class="line" id="setup">
+          <div class="k">Set up</div>
+          <ol>
+            <li><span><b>Sign in</b> here with Google or a magic link. That creates your household.</span></li>
+            <li>
+              <span>
+                <b>Add the connector</b> in Claude Desktop: Settings → Connectors → Add custom connector, and paste the
+                connector URL shown after you sign in.
+              </span>
+            </li>
+            <li>
+              <span>
+                <b>Approve.</b> Claude brings you back here to authorize it. Then open a new chat and say "set up my
+                household".
+              </span>
+            </li>
+          </ol>
+        </div>
+        <div class="line">
+          <div class="k">Margin</div>
+          <div class="pen">on the list: 1 l milk · 120 g chorizo · harissa</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a class="btn ink" href="#setup">Sign in and add the connector</a>
+        <a class="btn" href="#setup">See how it works</a>
+      </div>
+
+      <footer>
+        <span>chef-gpt</span>
+        <span>Household meal planning as MCP Apps</span>
+        <a href="https://github.com/tangerine-labs/chef-gpt">Source on GitHub</a>
+        <a href="#setup">Sign in</a>
+      </footer>
+    </main>
+  </body>
+</html>

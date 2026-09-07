@@ -22,9 +22,8 @@ It writes everything it collects to `.env` (see `.env.example`) and is safe to r
 deno task test          # domain + server tests
 deno task build         # bundle server + inline views → server/.mcp-use/build
 deno task dev           # mcp-use inspector (views without a chat host)
-deno task stage:edge    # build and copy the bundle into supabase/functions/chef
+deno task deploy        # build with external views, upload them to Storage, deploy the function (--prod for prod)
 deno task build:site    # static auth site → site/dist (deployed by .github/workflows/pages.yml)
-supabase functions deploy chef --project-ref <ref> --no-verify-jwt
 ```
 
 Always `deno task <name>` (or `deno run <name>`) — a bare `deno preview:snap` is parsed as a URL and fails with `Unsupported scheme "preview"`.
@@ -36,6 +35,7 @@ Three tiers, cheapest first: fixture gallery → headless PNG of a deployed view
 ```sh
 deno task preview                                          # fixture gallery in the browser (site/preview.html, every component in several states)
 deno task preview:snap [--story "Vote"] [--dark] [--width 400] [--out x.png]   # same gallery, headless, no backend → PNG
+deno task preview:snap --page designs/transcript.html [--dark] [--width 400]   # a static page under site/ (the website mockup) → PNG
 deno task snap <tool> ['{json}'] [--dark] [--width 600] [--out x.png]          # a deployed view as the test user → PNG (needs .env)
 deno task mcp list | call <tool> '{json}' | read <uri>     # poke the deployed server as the test user (seed data before snapping)
 deno task mcp prompts | prompt <name> ['{json}']           # the household prompts (prompts/list, prompts/get)

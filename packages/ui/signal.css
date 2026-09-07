@@ -1,0 +1,95 @@
+/*
+ * Signal: the chef-gpt design system tokens (docs/design-system.md).
+ * White dot-grid paper, one black fineliner, one signal yellow, one signal red.
+ * Imported by every view component and by the site; views bundle the fonts as data: URIs.
+ */
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("./fonts/SpaceGrotesk-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Shadows Into Light";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./fonts/ShadowsIntoLight-latin.woff2") format("woff2");
+}
+
+:root {
+  --sg-desk: #ececec;
+  --sg-paper: #ffffff;
+  --sg-dot: #e8e8e8;
+  --sg-rule: #000000;
+  --sg-rule-soft: #d9d9d9;
+  --sg-print: #000000;
+  --sg-print-muted: #444444;
+  --sg-ink: #000000;
+  --sg-ink-red: #ff3b1f;
+  --sg-note: #ffe14d;
+  --sg-note-ink: #000000;
+  --sg-tape: rgba(255, 255, 255, 0.6);
+  --sg-tape-edge: #000000;
+  --sg-focus: #ff3b1f;
+  --sg-shadow: rgba(0, 0, 0, 0.14);
+  /* reserved, exceptions only (see the design document) */
+  --sg-note-orange: #ff9f1c;
+  --sg-note-pink: #ffb3d9;
+  --sg-ink-green: #1f7a4d;
+  --sg-ink-blue: #1d3b8a;
+  /* tiers, markers and stamps only */
+  --sg-tier-s: #ffd700;
+  --sg-tier-a: #ef4444;
+  --sg-tier-b: #f97316;
+  --sg-tier-c: #eab308;
+  --sg-tier-d: #22c55e;
+  --sg-tier-f: #3b82f6;
+  --sg-tier-g: #6b7280;
+  /* type */
+  --sg-label: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --sg-body: var(--font-sans, Inter, system-ui, -apple-system, sans-serif);
+  --sg-pen: "Shadows Into Light", "Bradley Hand", "Segoe Print", cursive;
+  /* motion */
+  --sg-settle: 200ms;
+  --sg-ink-reveal: 300ms;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sg-desk: #000000;
+    --sg-paper: #141414;
+    --sg-dot: #242424;
+    --sg-rule: #ffffff;
+    --sg-rule-soft: #333333;
+    --sg-print: #ffffff;
+    --sg-print-muted: #b8b8b8;
+    --sg-ink: #ffffff;
+    --sg-ink-red: #ff5a42;
+    --sg-tape: rgba(255, 255, 255, 0.12);
+    --sg-tape-edge: #ffffff;
+    --sg-focus: #ffe14d;
+    --sg-shadow: rgba(0, 0, 0, 0.6);
+  }
+}
+:root[data-theme="dark"] {
+  --sg-desk: #000000;
+  --sg-paper: #141414;
+  --sg-dot: #242424;
+  --sg-rule: #ffffff;
+  --sg-rule-soft: #333333;
+  --sg-print: #ffffff;
+  --sg-print-muted: #b8b8b8;
+  --sg-ink: #ffffff;
+  --sg-ink-red: #ff5a42;
+  --sg-tape: rgba(255, 255, 255, 0.12);
+  --sg-tape-edge: #ffffff;
+  --sg-focus: #ffe14d;
+  --sg-shadow: rgba(0, 0, 0, 0.6);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sg-settle: 0ms;
+    --sg-ink-reveal: 0ms;
+  }
+}

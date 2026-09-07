@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>chef-gpt · Say it</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Caveat:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --desk: #d9d2c4;
+        --paper: #f4efe6;
+        --paper-2: #fbf8f2;
+        --rule: #c9c3b6;
+        --rule-soft: #e2dccf;
+        --print: #3d3a34;
+        --print-muted: #7a746a;
+        --ink: #1d3b8a;
+        --ink-red: #c2262e;
+        --focus: #1d3b8a;
+        --btn-fg: #f4efe6;
+        --shadow: rgba(50, 40, 20, 0.18);
+        --label: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
+        --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+        --pen: "Caveat", "Bradley Hand", "Comic Sans MS", cursive;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --desk: #15171a;
+          --paper: #23262b;
+          --paper-2: #2b2f35;
+          --rule: #4a4f57;
+          --rule-soft: #34383f;
+          --print: #ecebe6;
+          --print-muted: #a6a49c;
+          --ink: #dfe7ff;
+          --ink-red: #ff7b7b;
+          --focus: #dfe7ff;
+          --btn-fg: #15171a;
+          --shadow: rgba(0, 0, 0, 0.5);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        overflow-x: clip;
+      }
+      body {
+        margin: 0;
+        background: var(--desk);
+        color: var(--print);
+        font: 17px/1.55 var(--body);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: inherit;
+      }
+
+      /* ── the sheet ─────────────────────────────────────────── */
+      .sheet {
+        position: relative;
+        max-width: 1180px;
+        margin: 40px auto 64px;
+        background: var(--paper);
+        box-shadow: 0 18px 50px var(--shadow);
+        padding: 0 48px 48px 96px;
+        min-width: 0;
+      }
+      .sheet::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 64px;
+        border-right: 1px solid var(--rule);
+        background: radial-gradient(circle at 32px 50%, var(--desk) 9px, transparent 10px) 0 0 / 64px 160px repeat-y;
+      }
+
+      /* ── printed title strip ───────────────────────────────── */
+      .title {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 8px 24px;
+        padding: 30px 0 10px;
+        border-bottom: 2px solid var(--print);
+        min-width: 0;
+      }
+      .title h1 {
+        margin: 0;
+        font: 700 22px/1 var(--label);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        min-width: 0;
+      }
+      .title h1 span {
+        color: var(--print-muted);
+        margin-right: 14px;
+      }
+      .title .week-no {
+        font: 600 14px/1 var(--label);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+
+      /* ── the week grid ─────────────────────────────────────── */
+      .week {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        margin-top: 28px;
+        border: 2px solid var(--print);
+        background: var(--paper-2);
+        background-image: repeating-linear-gradient(to bottom, transparent 0 27px, var(--rule-soft) 27px 28px);
+        min-width: 0;
+      }
+      .day {
+        border-right: 1px solid var(--rule);
+        min-height: 236px;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: background 300ms;
+      }
+      .day:last-child {
+        border-right: 0;
+      }
+      .day.weekend {
+        background: rgba(120, 100, 60, 0.05);
+      }
+      .day.flash {
+        background: rgba(29, 59, 138, 0.07);
+      }
+      .head {
+        font: 600 14px/1 var(--label);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        padding: 8px 8px 0;
+      }
+      .head b {
+        display: block;
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--print);
+        font-variant-numeric: tabular-nums;
+        margin-top: 2px;
+        line-height: 1;
+      }
+      .written {
+        font: 500 21px/1.15 var(--pen);
+        color: var(--ink);
+        padding: 10px 8px 0;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        transform-origin: left center;
+      }
+      .written.red {
+        color: var(--ink-red);
+        text-decoration: line-through;
+        text-decoration-thickness: 2px;
+      }
+      .written.red + .written {
+        padding-top: 0;
+      }
+      .written.reveal {
+        animation: write 300ms ease-out both;
+      }
+      @keyframes write {
+        from {
+          clip-path: inset(0 100% 0 0);
+          opacity: 0.4;
+        }
+        to {
+          clip-path: inset(0 0 0 0);
+          opacity: 1;
+        }
+      }
+
+      /* ── the line you write on ─────────────────────────────── */
+      .say {
+        margin-top: 28px;
+        min-width: 0;
+      }
+      .say label {
+        display: block;
+        font: 600 13px/1 var(--label);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+        margin-bottom: 6px;
+      }
+      .line {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        border-bottom: 2px solid var(--print);
+        min-width: 0;
+      }
+      .line .pen-mark {
+        font: 700 30px/1 var(--pen);
+        color: var(--ink);
+        flex: none;
+        transform: translateY(3px);
+      }
+      .line input {
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--ink);
+        font: 500 clamp(24px, 3vw, 34px) / 1.2 var(--pen);
+        padding: 6px 0 4px;
+        caret-color: var(--ink);
+      }
+      .line input::placeholder {
+        color: var(--print-muted);
+        opacity: 0.8;
+      }
+      .line:focus-within {
+        border-bottom-color: var(--focus);
+        box-shadow: 0 2px 0 0 var(--focus);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 10px;
+        margin: 14px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .chips button {
+        border: 1px solid var(--rule);
+        background: var(--paper-2);
+        color: var(--print);
+        font: 500 17px/1 var(--pen);
+        padding: 7px 12px 6px;
+        border-radius: 3px;
+        cursor: pointer;
+        min-width: 0;
+      }
+      .chips button:hover,
+      .chips button:focus-visible {
+        border-color: var(--print);
+        outline: 0;
+      }
+      .margin-note {
+        min-height: 30px;
+        margin: 12px 0 0;
+        font: 500 21px/1.2 var(--pen);
+        color: var(--ink-red);
+        transform: rotate(-0.8deg);
+        transform-origin: left;
+      }
+      .margin-note.ok {
+        color: var(--ink);
+      }
+      .note {
+        margin: 6px 0 0;
+        font-size: 14px;
+        color: var(--print-muted);
+        max-width: 64ch;
+      }
+
+      /* ── below the grid ────────────────────────────────────── */
+      .lede {
+        max-width: 60ch;
+        margin: 44px 0 20px;
+        font-size: 18px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        align-items: center;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 12px 20px;
+        border: 2px solid var(--print);
+        color: var(--print);
+        font: 600 16px/1 var(--label);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+        min-width: 0;
+      }
+      .btn.ink {
+        border-color: var(--ink);
+        background: var(--ink);
+        color: var(--paper);
+      }
+      .two {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 40px;
+        margin-top: 44px;
+        padding-top: 22px;
+        border-top: 2px solid var(--print);
+      }
+      .two > * {
+        min-width: 0;
+      }
+      h2 {
+        font: 700 22px/1 var(--label);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin: 0 0 12px;
+      }
+      .menu,
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .menu li {
+        padding: 9px 0;
+        border-bottom: 1px solid var(--rule-soft);
+        font: 600 18px/1.2 var(--label);
+        letter-spacing: 0.02em;
+      }
+      .menu li::before {
+        content: "+";
+        color: var(--ink);
+        margin-right: 10px;
+      }
+      .steps li {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .steps .n {
+        font: 700 26px/1 var(--pen);
+        color: var(--ink);
+      }
+      .steps b {
+        font-weight: 600;
+      }
+      footer {
+        margin-top: 36px;
+        font: 600 13px/1.6 var(--label);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--print-muted);
+      }
+      footer a {
+        text-decoration: none;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .written.reveal {
+          animation: none;
+        }
+        .day {
+          transition: none;
+        }
+      }
+      @media (max-width: 720px) {
+        .sheet {
+          margin: 0;
+          padding: 0 20px 36px;
+        }
+        .sheet::before {
+          display: none;
+        }
+        .week {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .day {
+          min-height: 0;
+          border-right: 0;
+          border-bottom: 1px solid var(--rule);
+          flex-direction: row;
+          flex-wrap: wrap;
+          align-items: baseline;
+          gap: 4px 12px;
+          padding: 8px 10px 10px 8px;
+        }
+        .day:last-child {
+          border-bottom: 0;
+        }
+        .head {
+          flex: 0 0 64px;
+          padding: 0;
+          display: flex;
+          align-items: baseline;
+          gap: 6px;
+        }
+        .head b {
+          font-size: 22px;
+          margin: 0;
+        }
+        .written {
+          padding: 0;
+          flex: 1 1 0;
+        }
+        .written.red {
+          flex: 0 1 auto;
+        }
+        .two {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <div class="title">
+        <h1><span>chef-gpt</span>Vote on dinners, plan the week, keep the shopping list.</h1>
+        <span class="week-no">Week 36 · Monday start</span>
+      </div>
+
+      <div class="week" id="week" aria-label="Week of 2026-08-31">
+        <div class="day" data-day="mon"><div class="head">Mon<b>31</b></div></div>
+        <div class="day" data-day="tue">
+          <div class="head">Tue<b>01</b></div>
+          <div class="written">Hurtig chorizo- og harissaspaghetti</div>
+        </div>
+        <div class="day" data-day="wed"><div class="head">Wed<b>02</b></div></div>
+        <div class="day" data-day="thu"><div class="head">Thu<b>03</b></div></div>
+        <div class="day" data-day="fri"><div class="head">Fri<b>04</b></div></div>
+        <div class="day weekend" data-day="sat"><div class="head">Sat<b>05</b></div></div>
+        <div class="day weekend" data-day="sun"><div class="head">Sun<b>06</b></div></div>
+      </div>
+
+      <form class="say" id="say" autocomplete="off">
+        <label for="tell">Say it, and it's written</label>
+        <div class="line">
+          <span class="pen-mark" aria-hidden="true">✎</span>
+          <input id="tell" type="text" placeholder="Tell the planner… e.g. Wednesday we're eating out" />
+        </div>
+        <ul class="chips" aria-label="Try one">
+          <li><button type="button">Wednesday we're eating out</button></li>
+          <li><button type="button">Put the tofu bowl on Thursday</button></li>
+          <li><button type="button">Saturday is the kalkun</button></li>
+          <li><button type="button">Clear Tuesday</button></li>
+        </ul>
+        <p class="margin-note" id="margin" aria-live="polite"></p>
+        <p class="note">
+          Tools take names, not ids. A name that matches two recipes comes back as a question, never a guess.
+        </p>
+      </form>
+
+      <p class="lede">
+        chef-gpt is household meal planning inside Claude Desktop. Your household ranks the candidates, the week
+        fills itself from the ranked list, and the ingredients land on one shopping list. Click in the apps, or
+        just ask.
+      </p>
+      <div class="actions">
+        <a class="btn ink" href="#setup">Sign in and add the connector</a>
+        <a class="btn" href="#week">See how it works</a>
+      </div>
+
+      <div class="two">
+        <div>
+          <h2>Or pick a routine from the + menu</h2>
+          <ul class="menu">
+            <li>Plan the week</li>
+            <li>Start a voting round</li>
+            <li>What's for dinner tonight?</li>
+            <li>Shopping run</li>
+            <li>Set up the household</li>
+          </ul>
+        </div>
+        <div id="setup">
+          <h2>Set up in three steps</h2>
+          <ol class="steps">
+            <li>
+              <span class="n">1</span>
+              <span><b>Sign in</b> here with Google or a magic link. That creates your household.</span>
+            </li>
+            <li>
+              <span class="n">2</span>
+              <span>
+                <b>Add the connector</b> in Claude Desktop: Settings → Connectors → Add custom connector, and paste
+                the connector URL shown after you sign in.
+              </span>
+            </li>
+            <li>
+              <span class="n">3</span>
+              <span>
+                <b>Approve.</b> Claude brings you back here to authorize it. Then open a new chat and say "set up my
+                household".
+              </span>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <footer>
+        chef-gpt · Household meal planning as MCP Apps ·
+        <a href="https://github.com/tangerine-labs/chef-gpt">Source on GitHub</a> · <a href="#setup">Sign in</a>
+      </footer>
+    </div>
+
+    <script>
+      (() => {
+        const recipes = [
+          "Hurtig chorizo- og harissaspaghetti",
+          "Asiatisk avocado- og tofubowl",
+          "Kalkun med spaghetti…",
+          "Pandekager",
+        ];
+        const short = { "Hurtig chorizo- og harissaspaghetti": "chorizo pasta", "Asiatisk avocado- og tofubowl": "tofu bowl", "Kalkun med spaghetti…": "kalkun", Pandekager: "pandekager" };
+        const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+        const dayNames = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
+        const form = document.getElementById("say");
+        const input = document.getElementById("tell");
+        const margin = document.getElementById("margin");
+        const stop = new Set(["put", "the", "on", "is", "for", "we're", "were", "we", "are", "a", "an", "and", "eat", "eating", "out", "clear", "set", "to", "make", "have", "please", "dinner"]);
+
+        const fold = (s) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        function findDay(text) {
+          for (const d of days) if (new RegExp(`\\b${d}(day|nesday|rsday|urday|sday)?\\b`).test(text)) return d;
+          return null;
+        }
+        function findRecipe(text) {
+          const words = text.replace(/[^\p{L}\p{N}\s-]/gu, " ").split(/\s+/).filter((w) => w.length > 2 && !stop.has(w) && !days.some((d) => w.startsWith(d)));
+          if (!words.length) return { hits: [] };
+          const hits = recipes.filter((r) => words.some((w) => fold(r).includes(w)));
+          return { hits, words };
+        }
+        function say(note, ok) {
+          margin.textContent = note;
+          margin.classList.toggle("ok", !!ok);
+        }
+        function write(day, text, kind) {
+          const cell = document.querySelector(`.day[data-day="${day}"]`);
+          const current = cell.querySelector(".written:not(.red)");
+          for (const n of cell.querySelectorAll(".written.red")) n.remove();
+          if (current) {
+            if (kind === "clear") current.remove();
+            else current.classList.add("red");
+          }
+          if (kind !== "clear") {
+            const el = document.createElement("div");
+            el.className = "written reveal";
+            el.textContent = text;
+            cell.appendChild(el);
+          }
+          cell.classList.add("flash");
+          setTimeout(() => cell.classList.remove("flash"), 600);
+        }
+        function handle(raw) {
+          const text = fold(raw.trim());
+          if (!text) return;
+          const day = findDay(text);
+          if (!day) return say("Which day? Say Monday to Sunday.");
+          if (/\bclear\b/.test(text)) {
+            write(day, "", "clear");
+            return say(`${dayNames[day]} cleared.`, true);
+          }
+          if (/eating out|eat out/.test(text)) {
+            write(day, "eating out");
+            return say(`${dayNames[day]}: eating out.`, true);
+          }
+          const { hits, words } = findRecipe(text);
+          if (hits.length === 1) {
+            write(day, hits[0]);
+            return say(`${dayNames[day]}: ${hits[0]}.`, true);
+          }
+          if (hits.length > 1) return say(`Which one: ${hits.map((r) => short[r]).join(" or ")}?`);
+          say(words?.length ? `No recipe called “${words.join(" ")}”. Try chorizo, tofu bowl, kalkun or pandekager.` : "Which dinner?");
+        }
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          handle(input.value);
+          input.select();
+        });
+        for (const b of form.querySelectorAll(".chips button")) {
+          b.addEventListener("click", () => {
+            input.value = b.textContent;
+            handle(b.textContent);
+            input.focus();
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>
