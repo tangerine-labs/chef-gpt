@@ -27,7 +27,7 @@ Server-only, with curl, time to first byte (connect and TLS are under 20 ms):
 
 The view asset fetch is fine: 630 KB in 70 to 100 ms, `cache-control: public, max-age=31536000`, Cloudflare cache HIT.
 
-**Reading, confirmed by the instrumentation below (2026-09-07, after deploy).** Every request runs in a fresh worker: 24 bench requests answered by 24 different worker ids. Inside the worker the costs are small: the isolate reaches our first module 76 to 120 ms after it starts, and handling a 404 takes 7 ms. The request still takes about 1.47 s, so roughly 1.3 s per request is spent by the platform outside the isolate, creating and tearing down a worker each time. Supabase's architecture guide says isolates "can remain active for a period (plan-dependent)"; on this project they do not.
+**Reading (2026-09-07, corrected the same evening).** Every request runs in a fresh worker: 24 bench requests answered by 24 different worker ids, and the same holds for a one-line function on this project, so "isolates can remain active for a period (plan-dependent)" means no reuse on this plan. The first reading blamed the platform for the 1.3 s outside the isolate. It was our module graph: a one-line function boots in 0.1 s, one importing supabase-js in 0.17 s, one importing mcp-use in 1.38 s, because mcp-use lists its CLI and inspector as runtime dependencies and the platform loads all 101 packages on every boot. Bundling the function into one module (ADR 0006) took the floor to 0.22 s; the log at the end has the numbers.
 
 On top of that floor, tools spend 200 to 800 ms in the handler, of which 130 to 630 ms is two to six PostgREST round trips (`get_household` 4 calls, `show_week` 6). A view open pays the floor twice (tool call, then resource read) and then fetches 630 KB of assets, which are cached for a year after the first open.
 
@@ -43,7 +43,7 @@ On top of that floor, tools spend 200 to 800 ms in the handler, of which 130 to 
 
 (The floor reads 1.4 to 1.5 s from a single curl and 3.3 s in the bench right after a deploy; the platform side varies, ours does not.)
 
-So "always slow" is the platform's worker per request, and "some calls extra slow" is the tools with many sequential queries, plus the host's own round trips.
+So "always slow" was our module graph loaded on every boot (fixed, ADR 0006), and "some calls extra slow" is the tools with many sequential queries, plus the host's own round trips.
 
 ## 2. Instrument before optimising
 
@@ -59,7 +59,7 @@ Implemented in the `perf/instrument` branch; the numbers above come from it.
 
 **Bench** (done): `scripts/bench.ts` (`deno task bench`, `--runs N`, `--no-store`, `--enforce`) runs a fixed script as the test user (floor 404, well-known, whoami, get_household, get_week, search_recipes, show_week, show_shopping_list), prints p50/p95 with the `Server-Timing` split and the number of worker ids seen, and stores the rows with the commit. `scripts/deploy.ts` runs it after every deploy. `.github/workflows/bench.yml` runs it every six hours with `--enforce` once the secrets `SUPABASE_SERVICE_ROLE_KEY` and `TEST_USER_PASSWORD` are set on the repo; until then the job skips itself. The probe (`deno task mcp … -v`) prints the same header per call.
 
-**Budgets** (first draft; every name is over today because of the floor, so `--enforce` stays off the deploy until the floor is addressed):
+**Budgets** (first draft; with the bundle the floor, well-known and whoami are inside, the tools with four or more queries are still over, so `--enforce` stays off the deploy until the read tools are one RPC each):
 
 | Name | p95 budget |
 |---|---|
@@ -78,19 +78,37 @@ Implemented in the `perf/instrument` branch; the numbers above come from it.
 - **Draw the sheet.** The design system's loading states: the dot grid fades in and the rules draw themselves, the notepad rolls down, the tier rows are ruled one stroke at a time. Under a second, once, then the content lands. Implement as the `pending` branch of `server/views/frame.tsx`, one drawing per view.
 - **Optimistic already.** Week plan and Shopping list show the change before the server answers and revert in red if it refuses; keep that pattern for Vote's submit (show "rated" on the roster at once).
 - **Print what we know first.** A view receives its tool result in one go, so there is nothing to stream, but the host shows the tool's text while the iframe loads; keep the text results short and useful so the wait reads as progress.
-- **Cut round trips where the wait is felt.** A view open is tool call, then resource read, then assets. Assets are cached for a year after the first open; the tool and resource round trips each pay the 1.4 s floor today, which is why fixing the floor matters more than any view-side trick.
+- **Cut round trips where the wait is felt.** A view open is tool call, then resource read, then assets. Assets are cached for a year after the first open; the tool and resource round trips each pay the 0.22 s floor plus the tool's own queries, which is why the read tools' round trips matter more than any view-side trick.
 
 ## 5. Fix the floor
 
-`Server-Timing` says: a worker per request, and 1.3 s of the 1.5 s is outside the isolate. So the fixes are, in order of leverage:
+Done for the boot (ADR 0006): the function deploys as one module and the floor is 0.22 s. What is left, in order of leverage:
 
-1. **Ask Supabase why workers are not kept warm** on this project, with the evidence (worker ids, `boot;dur` under 120 ms, handle 7 ms, total 1.5 s, `x-deno-execution-id`). If warm isolates are a paid-plan feature, that is a plan decision, not code.
-2. **If the platform will not reuse workers**, the MCP endpoint's host is the variable: ADR 0001 chose Supabase for one platform, and this cost was not visible then. Measure the same bench against a Deno Deploy or Fly deployment of the same bundle before deciding; the edge shim and the deploy script make that a small experiment.
-3. **Inside the request**, worth doing regardless: one RPC per read tool instead of three to six PostgREST calls (`show_week`, `get_household`, `search_recipes` first), which also removes the per-call JWT check. Expect 400 to 500 ms off the heavy tools.
-4. **The view's second round trip**: the resource read pays the floor again. Check whether the host caches `ui://` resources across opens; if not, the resource must be as cheap as possible on our side (it already is: 7 ms).
+1. **One RPC per read tool** instead of three to six PostgREST calls. From a fresh worker each call costs 100 to 150 ms and the first also pays the TLS handshake to the public gateway; `get_household` (4 calls), `search_recipes` (5) and `show_week` (6) spend 530 to 660 ms there. A Postgres function per tool, run as the caller so RLS still applies, brings each to one round trip: expect 400 to 500 ms off the heavy tools and the budgets within reach.
+2. **Warm workers** would remove the remaining 0.2 s per request. Supabase ties the idle period to the plan; check what Pro gives before paying for it, since the bench answers the question in one run.
+3. **The view's second round trip**: the resource read pays the floor again. Check whether the host caches `ui://` resources across opens; if not, the resource must be as cheap as possible on our side (it already is: 7 ms).
+4. Not a lever: connection pooling. The function never opens a Postgres connection; supabase-js speaks HTTP to PostgREST, which holds its own pool. Hyperdrive is a Cloudflare Workers binding, and Supabase Edge Functions are Deno workers behind Cloudflare's CDN, not Workers.
 
 ## 6. Cadence
 
 - Every deploy: `deno task bench` prints the table; the deploy script refuses to finish if the floor regressed past budget.
 - Weekly: look at `perf_daily` for the week, pick the worst name, change one thing, note it in this file under a dated heading.
 - Every change to a tool that adds a query: run the bench before and after and put both numbers in the PR.
+
+## 7. Log
+
+### 2026-09-07 · one-module bundle (ADR 0006)
+
+Bench p50 in ms, 5 runs, dev project, before → after:
+
+| Name | before | after | handle | db | calls |
+|---|---|---|---|---|---|
+| floor (404) | 1402 | 225 | 7 | 0 | 0 |
+| whoami | 1739 | 364 | 129 | 0 | 0 |
+| get_household | 2235 | 971 | 709 | 534 | 4 |
+| get_week | 1860 | 625 | 386 | 252 | 3 |
+| search_recipes | 2137 | 987 | 769 | 606 | 5 |
+| show_week | 2059 | 939 | 726 | 594 | 6 |
+| show_shopping_list | 1689 | 697 | 434 | 260 | 2 |
+
+Method: deployed `ping` (one line), `ping-sb` (imports supabase-js), `ping-heavy` (imports what chef imports) and `ping-bundled` (ping-heavy through `deno bundle`, tslib and @mcp-use/client external) next to chef on the dev project and timed each: 0.10, 0.17, 1.38 and 0.17 s per request, all with a new worker id per request. Region pinning (`x-region: eu-north-1`, the database's region) was rerouted to eu-central-1 and changed nothing. The experiment functions were deleted afterwards.

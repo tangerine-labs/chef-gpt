@@ -9,7 +9,7 @@
  *    (Server-side bundling on deploy fails somewhere above 2.5 MB; inline views hit that.)
  * 2. Creates the bucket if needed and uploads server/.mcp-use/build/views/** under the same paths
  *    mcp-use put in the manifest (hashed file names, long cache).
- * 3. Stages server.js, edge.ts, config.ts and timing.ts into supabase/functions/chef and deploys.
+ * 3. Bundles server.js with the edge shim into supabase/functions/chef/bundle.js (one module) and deploys.
  *
  * The bucket shares the function's origin, so the views' CSP needs no extra domain.
  */
@@ -105,12 +105,48 @@ for await (const view of Deno.readDir(viewsDir)) {
 }
 console.log(`→ uploaded ${uploaded} view assets to ${BUCKET}/${keyPrefix}/views/`);
 
+// Stage the server and the edge shim in a scratch dir outside the workspace (deno bundle refuses a
+// config file that is not a workspace member) and bundle them into one module. The platform boots a
+// fresh worker for every request, and loading mcp-use's hundred-package graph costs ~1.2 s of that
+// boot; one file costs ~0.1 s (docs/performance.md §5, ADR 0006).
 const fn = path("supabase/functions/chef/");
-await Deno.copyFile(path("server/.mcp-use/build/index.js"), `${fn}server.js`);
+const stage = await Deno.makeTempDir({ prefix: "chef-fn-" });
+await Deno.copyFile(path("server/.mcp-use/build/index.js"), `${stage}/server.js`);
 // edge.ts and what it imports; keep this list in step with server/edge.ts
-for (const f of ["edge.ts", "config.ts", "timing.ts"]) await Deno.copyFile(path(`server/${f}`), `${fn}${f}`);
-const size = (await Deno.stat(`${fn}server.js`)).size;
-console.log(`→ staged server.js (${(size / 1024).toFixed(0)} KB); deploying chef to ${ref}`);
+for (const f of ["edge.ts", "config.ts", "timing.ts"])
+  await Deno.copyFile(path(`server/${f}`), `${stage}/${f}`);
+await Deno.copyFile(`${fn}deno.json`, `${stage}/deno.json`);
+await Deno.writeTextFile(
+  `${stage}/entry.ts`,
+  [
+    'import { createEdgeHandler } from "./edge.ts";',
+    'import server from "./server.js";',
+    "Deno.serve(createEdgeHandler((req) => server.fetch(req)));",
+    "",
+  ].join("\n"),
+);
+await run(
+  [
+    "deno",
+    "bundle",
+    "--platform",
+    "deno",
+    "--minify",
+    // Left to the platform's npm loader: tslib's CommonJS shape breaks under the bundler's interop,
+    // and @mcp-use/client is an optional import mcp-use never takes on the server.
+    "--external",
+    "tslib",
+    "--external",
+    "@mcp-use/client",
+    "-o",
+    `${fn}bundle.js`,
+    "entry.ts",
+  ],
+  { cwd: stage },
+);
+await Deno.remove(stage, { recursive: true });
+const size = (await Deno.stat(`${fn}bundle.js`)).size;
+console.log(`→ bundled chef into one module (${(size / 1024).toFixed(0)} KB); deploying to ${ref}`);
 await retry("functions deploy", () =>
   run(["supabase", "functions", "deploy", "chef", "--project-ref", ref, "--no-verify-jwt"], {
     cwd: root.pathname,

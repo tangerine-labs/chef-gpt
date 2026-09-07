@@ -8,10 +8,8 @@ supabase/.temp/
 supabase/.branches/
 .DS_Store
 *.log
-supabase/functions/chef/server.js
+supabase/functions/chef/bundle.js
 mcp-env.d.ts
-supabase/functions/chef/edge.ts
-supabase/functions/chef/config.ts
 site/dist/
 site/.vite/
 scratch/

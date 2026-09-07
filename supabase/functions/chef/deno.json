@@ -7,6 +7,7 @@
     "react": "npm:react@19",
     "react/jsx-runtime": "npm:react@19/jsx-runtime",
     "react-dom": "npm:react-dom@19",
-    "zod": "npm:zod@4"
+    "zod": "npm:zod@4",
+    "tslib": "npm:tslib@2"
   }
 }
