@@ -4,7 +4,6 @@ import { z } from "zod";
 import { MCP_PATH, SITE_ORIGIN, SUPABASE_URL } from "./config.ts";
 import { registerImageProxy } from "./img-proxy.ts";
 import { registerPerf } from "./perf.ts";
-import { registerPrompts } from "./prompts.ts";
 import { registerHouseholdTools } from "./tools/households.ts";
 import { registerMemberTools } from "./tools/members.ts";
 import { registerRecipeTools } from "./tools/recipes.ts";
@@ -47,7 +46,6 @@ registerHouseholdTools(server);
 registerRoundTools(server);
 registerWeekTools(server);
 registerShoppingTools(server);
-registerPrompts(server);
 registerImageProxy(server);
 registerPerf(server);
 
