@@ -140,6 +140,16 @@ Four more security-invoker functions, same shape as `week_bundle`: `household_bu
 
 p50 in ms, 3 runs, dev project. What is left per request is the 0.22 s boot, the host's own round trips, and 200 to 370 ms of handler time that is mostly the one PostgREST call from a cold worker (TLS to the public gateway included).
 
+### 2026-09-07 · search_recipes in one round trip
+
+The query itself was never slow: 1129 recipes, the filtered `ilike` with an exact count answers in 50 to 80 ms from a laptop. The tool cost was two sequential PostgREST calls from a cold worker (scope, then the query) and `select *` carrying ingredients and instructions for every hit. `search_recipes(q, cuisine_q, tag_q, max_minutes, cookbook, include_retired, lim)` now does scope, filters, exact total and the page in one call and returns summary columns only; the tool's text and structured output are unchanged (diffed before and after on two queries).
+
+| Name | before | after | handle | db | calls |
+|---|---|---|---|---|---|
+| search_recipes | 626 | 538 | 317 | 169 | 1 |
+
+What remains on every tool call is 150 to 220 ms of handler time with no database in it (`whoami` shows it alone): mcp-use's Supabase provider verifies the bearer token against the project's JWKS, and with a fresh worker per request that is a fetch per call. The tokens are ES256, so the provider's `jwtSecret` shortcut (HS256, local) does not apply; the fix would be a verifier with the public keys embedded at deploy time and the remote set as fallback for an unknown key id.
+
 ### 2026-09-07 · what a host's tool call costs, measured
 
 A search through the claude.ai connector, bracketed from a Claude Code session with the request log on:
