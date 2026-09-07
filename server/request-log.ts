@@ -21,6 +21,15 @@ export type RequestRecord = {
   host: string | null;
 };
 
+/** The AWS region this worker runs in; Supabase sets it per invocation. */
+export const REGION = (() => {
+  try {
+    return Deno.env.get("SB_REGION") ?? null;
+  } catch {
+    return null;
+  }
+})();
+
 const serviceKey = (): string => {
   try {
     return Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -51,6 +60,7 @@ export function recordRequest(r: RequestRecord): void {
         ms_db: r.db,
         db_calls: r.dbCalls,
         worker: r.worker,
+        region: REGION,
         host: r.host,
         extra: { method: r.method, status: r.status, path: r.path },
       })
