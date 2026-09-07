@@ -18,6 +18,7 @@
  * function logs one JSON line per request; see docs/performance.md.
  */
 import { MCP_PATH, PUBLIC_BASE, SITE_ORIGIN } from "./config.ts";
+import { recordRequest } from "./request-log.ts";
 import { type RequestTiming, serverTiming, timing, WORKER } from "./timing.ts";
 
 type Fetcher = (req: Request) => Promise<Response> | Response;
@@ -33,6 +34,7 @@ export function publicPath(pathname: string): string {
 export function createEdgeHandler(fetch: Fetcher): (req: Request) => Promise<Response> {
   return (req) => {
     const t: RequestTiming = { start: performance.now(), db: 0, dbCalls: 0 };
+    const arrived = new Date();
     return timing.run(t, async () => {
       const incoming = new URL(req.url);
       const url = new URL(SITE_ORIGIN);
@@ -67,6 +69,19 @@ export function createEdgeHandler(fetch: Fetcher): (req: Request) => Promise<Res
           dbCalls: t.dbCalls,
         }),
       );
+      if (url.pathname === MCP_PATH)
+        recordRequest({
+          at: arrived,
+          method: req.headers.get("mcp-method") ?? req.method,
+          name: req.headers.get("mcp-name") ?? undefined,
+          path: url.pathname,
+          status: res.status,
+          ms: handleMs,
+          db: t.db,
+          dbCalls: t.dbCalls,
+          worker: WORKER,
+          host: req.headers.get("user-agent")?.slice(0, 60) ?? null,
+        });
       return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
     });
   };

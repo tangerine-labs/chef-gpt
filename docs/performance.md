@@ -51,7 +51,8 @@ Implemented in the `perf/instrument` branch; the numbers above come from it.
 
 1. **`Server-Timing` header from the edge shim** (`server/edge.ts`, `server/timing.ts`): `boot;dur=<ms from isolate start to our first module>;desc="worker <id> age <ms>"`, `handle;dur=<ms inside server.fetch>`, `db;dur=<ms in PostgREST>;desc="<n> calls"`. The worker id is fixed for the life of a worker, so a changing id across responses means a boot per request. The shim also logs one JSON line per request (method, tool name, status, durations; no arguments, no user data) for the Logs Explorer. The bundle carries its own copy of `timing.ts`, so the state lives on `globalThis`.
 2. **Database time** is charged by the `fetch` the user database client is created with (`userDb` in `server/db.ts`), so every tool is covered without touching handlers.
-3. **Client-side truth.** `server/views/frame.tsx` posts `{view, mountMs, assetMs, assetBytes, host}` once per open to `/functions/v1/chef/perf` (same origin as the assets, so the views' CSP allows it); the endpoint (`server/perf.ts`) writes a `perf_samples` row through the service role. This is the number a person feels.
+3. **Every MCP request** becomes a `perf_samples` row (source `tool`, `server/request-log.ts`): arrival time, method, tool name, status, our handle and database time, worker id and the host's user agent. It is the only record of what a host actually sends per tool call and when; the bench cannot show that. Written through the service role after the response, via `EdgeRuntime.waitUntil`.
+4. **Client-side truth.** `server/views/frame.tsx` posts `{view, mountMs, assetMs, assetBytes, host}` once per open to `/functions/v1/chef/perf` (same origin as the assets, so the views' CSP allows it); the endpoint (`server/perf.ts`) writes a `perf_samples` row through the service role. This is the number a person feels.
 
 ## 3. Continuous benchmarking
 
@@ -137,3 +138,13 @@ Four more security-invoker functions, same shape as `week_bundle`: `household_bu
 | get_week | 491 | 481 | 259 | 142 | 1 |
 
 p50 in ms, 3 runs, dev project. What is left per request is the 0.22 s boot, the host's own round trips, and 200 to 370 ms of handler time that is mostly the one PostgREST call from a cold worker (TLS to the public gateway included).
+
+### 2026-09-07 · what a host's tool call costs, measured
+
+A search through the claude.ai connector, bracketed from a Claude Code session with the request log on:
+
+- The host sends **one request** per tool call (`tools/call`, user agent `Claude-User`); no initialize or tools/list before it. The server is stateless (no session id), so there is nothing to re-establish.
+- The request reached us about 2 s after the model emitted the call (5.4 s minus roughly 3 s of the model's own turn). Our handle time was 1.3 s on that call (two PostgREST calls at 854 ms, the slow end of the cold-worker range; #9 makes it one call), 0.45 to 0.95 s on repeats.
+- So a search that feels like ten seconds in Claude Desktop is mostly the model's turns around the call (thinking before it, reading a 6.5 KB result after it) plus about 2 s of connector transit; the server's share is under a second and now visible per request in `perf_samples`.
+- Claude Desktop's own log showed the views' perf post blocked by CORS (the view document's origin is `claudemcpcontent.com`); the endpoint now answers preflight and sends `access-control-allow-origin: *`, so view samples will start arriving.
+- Side effect of the after-response hand-off: the platform kept a worker alive until the log insert finished and routed the next request to it. That request handled in 83 ms with a 75 ms database call. Workers can be reused here; what decides it is pending work.
