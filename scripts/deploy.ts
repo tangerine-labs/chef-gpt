@@ -113,7 +113,7 @@ const fn = path("supabase/functions/chef/");
 const stage = await Deno.makeTempDir({ prefix: "chef-fn-" });
 await Deno.copyFile(path("server/.mcp-use/build/index.js"), `${stage}/server.js`);
 // edge.ts and what it imports; keep this list in step with server/edge.ts
-for (const f of ["edge.ts", "config.ts", "timing.ts"])
+for (const f of ["edge.ts", "config.ts", "timing.ts", "request-log.ts"])
   await Deno.copyFile(path(`server/${f}`), `${stage}/${f}`);
 await Deno.copyFile(`${fn}deno.json`, `${stage}/deno.json`);
 await Deno.writeTextFile(

@@ -51,7 +51,8 @@ Implemented in the `perf/instrument` branch; the numbers above come from it.
 
 1. **`Server-Timing` header from the edge shim** (`server/edge.ts`, `server/timing.ts`): `boot;dur=<ms from isolate start to our first module>;desc="worker <id> age <ms>"`, `handle;dur=<ms inside server.fetch>`, `db;dur=<ms in PostgREST>;desc="<n> calls"`. The worker id is fixed for the life of a worker, so a changing id across responses means a boot per request. The shim also logs one JSON line per request (method, tool name, status, durations; no arguments, no user data) for the Logs Explorer. The bundle carries its own copy of `timing.ts`, so the state lives on `globalThis`.
 2. **Database time** is charged by the `fetch` the user database client is created with (`userDb` in `server/db.ts`), so every tool is covered without touching handlers.
-3. **Client-side truth.** `server/views/frame.tsx` posts `{view, mountMs, assetMs, assetBytes, host}` once per open to `/functions/v1/chef/perf` (same origin as the assets, so the views' CSP allows it); the endpoint (`server/perf.ts`) writes a `perf_samples` row through the service role. This is the number a person feels.
+3. **Every MCP request** becomes a `perf_samples` row (source `tool`, `server/request-log.ts`): arrival time, method, tool name, status, our handle and database time, worker id and the host's user agent. It is the only record of what a host actually sends per tool call and when; the bench cannot show that. Written through the service role after the response, via `EdgeRuntime.waitUntil`.
+4. **Client-side truth.** `server/views/frame.tsx` posts `{view, mountMs, assetMs, assetBytes, host}` once per open to `/functions/v1/chef/perf` (same origin as the assets, so the views' CSP allows it); the endpoint (`server/perf.ts`) writes a `perf_samples` row through the service role. This is the number a person feels.
 
 ## 3. Continuous benchmarking
 
@@ -85,9 +86,10 @@ Implemented in the `perf/instrument` branch; the numbers above come from it.
 Done for the boot (ADR 0006): the function deploys as one module and the floor is 0.22 s. What is left, in order of leverage:
 
 1. **One RPC per read tool** instead of three to six PostgREST calls. Done: `week_bundle`, `household_bundle`, `recipe_scope`, `shopping_bundle`, `round_bundle` (see the log). Every read tool is inside its budget at p50. From a fresh worker each call costs 100 to 150 ms and the first also pays the TLS handshake to the public gateway; `get_household` (4 calls), `search_recipes` (5) and `show_week` (6) spend 530 to 660 ms there. A Postgres function per tool, run as the caller so RLS still applies, brings each to one round trip: expect 400 to 500 ms off the heavy tools and the budgets within reach.
-2. **Warm workers** would remove the remaining 0.2 s per request. Supabase ties the idle period to the plan; check what Pro gives before paying for it, since the bench answers the question in one run.
-3. **The view's second round trip**: the resource read pays the floor again. Check whether the host caches `ui://` resources across opens; if not, the resource must be as cheap as possible on our side (it already is: 7 ms).
-4. Not a lever: connection pooling. The function never opens a Postgres connection; supabase-js speaks HTTP to PostgREST, which holds its own pool. Hyperdrive is a Cloudflare Workers binding, and Supabase Edge Functions are Deno workers behind Cloudflare's CDN, not Workers.
+2. **Region.** Done: MCP requests that land outside Europe are redirected to eu-central-1 with `forceFunctionRegion` (see the log). The hosts call from the US, and from there every database call and the JWKS fetch crossed the Atlantic.
+3. **Warm workers** would remove the remaining 0.2 s per request. Supabase ties the idle period to the plan; check what Pro gives before paying for it, since the bench answers the question in one run.
+4. **The view's second round trip**: the resource read pays the floor again. Check whether the host caches `ui://` resources across opens; if not, the resource must be as cheap as possible on our side (it already is: 7 ms).
+5. Not a lever: connection pooling. The function never opens a Postgres connection; supabase-js speaks HTTP to PostgREST, which holds its own pool. Hyperdrive is a Cloudflare Workers binding, and Supabase Edge Functions are Deno workers behind Cloudflare's CDN, not Workers.
 
 ## 6. Cadence
 
@@ -147,3 +149,26 @@ The query itself was never slow: 1129 recipes, the filtered `ilike` with an exac
 | search_recipes | 626 | 538 | 317 | 169 | 1 |
 
 What remains on every tool call is 150 to 220 ms of handler time with no database in it (`whoami` shows it alone): mcp-use's Supabase provider verifies the bearer token against the project's JWKS, and with a fresh worker per request that is a fetch per call. The tokens are ES256, so the provider's `jwtSecret` shortcut (HS256, local) does not apply; the fix would be a verifier with the public keys embedded at deploy time and the remote set as fallback for an unknown key id.
+
+### 2026-09-07 · what a host's tool call costs, measured
+
+A search through the claude.ai connector, bracketed from a Claude Code session with the request log on:
+
+- The host sends **one request** per tool call (`tools/call`, user agent `Claude-User`); no initialize or tools/list before it. The server is stateless (no session id), so there is nothing to re-establish.
+- The request reached us about 2 s after the model emitted the call (5.4 s minus roughly 3 s of the model's own turn). Our handle time was 1.3 s on that call (two PostgREST calls at 854 ms, the slow end of the cold-worker range; #9 makes it one call), 0.45 to 0.95 s on repeats.
+- So a search that feels like ten seconds in Claude Desktop is mostly the model's turns around the call (thinking before it, reading a 6.5 KB result after it) plus about 2 s of connector transit; the server's share is under a second and now visible per request in `perf_samples`.
+- Claude Desktop's own log showed the views' perf post blocked by CORS (the view document's origin is `claudemcpcontent.com`); the endpoint now answers preflight and sends `access-control-allow-origin: *`, so view samples will start arriving.
+- Side effect of the after-response hand-off: the platform kept a worker alive until the log insert finished and routed the next request to it. That request handled in 83 ms with a 75 ms database call. Workers can be reused here; what decides it is pending work.
+
+### 2026-09-07 · Claude Desktop's search, measured, and the region fix
+
+The request log caught a search from Claude Desktop: a `server/discover` (571 ms) and, a second later, the `tools/call` (1306 ms, of which 1025 ms was two database calls). The same two calls take 200 to 300 ms from the bench. The difference is where the worker runs: Supabase runs a request in the region closest to its caller, Anthropic calls from the US, and every PostgREST call (and the JWKS fetch) then crosses the Atlantic with a fresh handshake. Forcing the region with the `forceFunctionRegion` query parameter reproduces both ends:
+
+| function region | tool call | database, 2 calls |
+|---|---|---|
+| us-east-1 | 1418 to 1699 ms | 832 to 849 ms |
+| eu-central-1 | 667 to 860 ms | 193 to 325 ms |
+
+eu-north-1, the database's own region, is not in Supabase's list of function regions; eu-central-1 is the nearest. The edge shim now answers a 307 to the same URL with `forceFunctionRegion=eu-central-1` for MCP requests that land outside Europe (`SB_REGION`), and leaves forced requests alone. The claude.ai connector follows it: its next search ran in 476 ms with 234 ms of database time, against 1306 and 1025 before. The redirect itself is one cheap boot in the far region (about 0.33 s to first byte from us-east-1).
+
+Of the 12 s the person saw in Desktop, the server accounted for about 2.4 s across the two requests before the fix and about 1.2 s after; the rest is the model's turns around the call and the connector's transit.

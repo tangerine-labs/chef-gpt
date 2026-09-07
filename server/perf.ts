@@ -1,7 +1,7 @@
 /**
  * Views report what a person felt: how long from mount until the sheet showed, and how long the
- * assets took (docs/performance.md §2.3). Same origin as the views' assets, so their CSP already
- * allows the call. Rows go to perf_samples through the service role; no user data is sent.
+ * assets took (docs/performance.md §2.3). The views' CSP allows the call (same origin as their
+ * assets), but the document's origin is the host's, so the endpoint answers CORS. Rows go to perf_samples through the service role; no user data is sent.
  */
 import { createClient } from "@supabase/supabase-js";
 import type { MCPServer } from "mcp-use";
@@ -25,8 +25,18 @@ const isSample = (x: unknown): x is Sample =>
   (x as Sample).view.length < 40 &&
   typeof (x as Sample).mountMs === "number";
 
+/** Views run on the host's origin (claudemcpcontent.com in Claude), so the post is cross-origin. */
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "POST",
+  "access-control-allow-headers": "content-type",
+  "access-control-max-age": "86400",
+};
+
 export function registerPerf(server: MCPServer<SupabaseOAuthUser>) {
+  server.app.options(`${PUBLIC_BASE}/perf`, (c) => c.body(null, 204, CORS));
   server.app.post(`${PUBLIC_BASE}/perf`, async (c) => {
+    for (const [k, v] of Object.entries(CORS)) c.header(k, v);
     const text = await c.req.text();
     if (text.length > 2000) return c.text("too big", 413);
     let body: unknown;

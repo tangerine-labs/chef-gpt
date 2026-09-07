@@ -18,6 +18,7 @@
  * function logs one JSON line per request; see docs/performance.md.
  */
 import { MCP_PATH, PUBLIC_BASE, SITE_ORIGIN } from "./config.ts";
+import { REGION, recordRequest } from "./request-log.ts";
 import { type RequestTiming, serverTiming, timing, WORKER } from "./timing.ts";
 
 type Fetcher = (req: Request) => Promise<Response> | Response;
@@ -30,9 +31,36 @@ export function publicPath(pathname: string): string {
   return `/functions/v1${p}`;
 }
 
+/**
+ * The database is in eu-north-1 and a request is run in the region closest to its caller, so a
+ * host calling from the US pays a transatlantic round trip per database call (850 ms for two,
+ * against 200 in the EU; docs/performance.md 2026-09-07). Supabase honours a forceFunctionRegion
+ * query parameter, so MCP requests that land outside Europe are sent back to Frankfurt with it.
+ * 307 keeps the method and body; the redirect itself costs one cheap boot in the far region.
+ */
+const HOME_REGION = "eu-central-1";
+const FORCE = "forceFunctionRegion";
+function farFromHome(url: URL): boolean {
+  return (
+    REGION !== null && !REGION.startsWith("eu-") && url.pathname === MCP_PATH && !url.searchParams.has(FORCE)
+  );
+}
+
 export function createEdgeHandler(fetch: Fetcher): (req: Request) => Promise<Response> {
   return (req) => {
+    {
+      const here = new URL(req.url);
+      here.pathname = publicPath(here.pathname);
+      if (farFromHome(here)) {
+        const home = new URL(SITE_ORIGIN);
+        home.pathname = here.pathname;
+        home.search = here.search;
+        home.searchParams.set(FORCE, HOME_REGION);
+        return Promise.resolve(Response.redirect(home, 307));
+      }
+    }
     const t: RequestTiming = { start: performance.now(), db: 0, dbCalls: 0 };
+    const arrived = new Date();
     return timing.run(t, async () => {
       const incoming = new URL(req.url);
       const url = new URL(SITE_ORIGIN);
@@ -67,6 +95,19 @@ export function createEdgeHandler(fetch: Fetcher): (req: Request) => Promise<Res
           dbCalls: t.dbCalls,
         }),
       );
+      if (url.pathname === MCP_PATH)
+        recordRequest({
+          at: arrived,
+          method: req.headers.get("mcp-method") ?? req.method,
+          name: req.headers.get("mcp-name") ?? undefined,
+          path: url.pathname,
+          status: res.status,
+          ms: handleMs,
+          db: t.db,
+          dbCalls: t.dbCalls,
+          worker: WORKER,
+          host: req.headers.get("user-agent")?.slice(0, 60) ?? null,
+        });
       return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
     });
   };
