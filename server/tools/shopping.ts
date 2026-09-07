@@ -37,21 +37,21 @@ const rowToItem = (r: {
   recipeTitle: (r.recipes as { title: string } | null)?.title ?? null,
 });
 
-const SELECT = "id, name, quantity, unit, checked, recipe_id, recipes(title)";
-
-async function readItems(db: ReturnType<typeof userDb>, hid: string) {
-  const rows = must(
-    await db
-      .from("shopping_items")
-      .select(SELECT)
-      .eq("household_id", hid)
-
-      .order("position")
-      .order("created_at")
-      .order("id"),
-    "shopping list",
-  );
-  const items = rows.map(rowToItem);
+/** The whole list in one round trip (`shopping_bundle`, migration 20260907220000). */
+async function readItems(db: ReturnType<typeof userDb>) {
+  type Raw = {
+    items: {
+      id: string;
+      name: string;
+      quantity: string | null;
+      unit: string | null;
+      checked: boolean;
+      recipe_id: string | null;
+      recipe_title: string | null;
+    }[];
+  };
+  const raw = must(await db.rpc("shopping_bundle"), "shopping list") as unknown as Raw;
+  const items = raw.items.map((r) => ({ ...rowToItem(r), recipeTitle: r.recipe_title }));
   return { items, uncheckedCount: items.filter((i) => !i.checked).length };
 }
 
@@ -73,8 +73,7 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
     (_input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const out = await readItems(db, hid);
+        const out = await readItems(db);
         return ok(
           `Shopping list (${out.uncheckedCount} open):\n${out.items.map(itemLine).join("\n") || "(empty)"}`,
           out,
@@ -94,8 +93,7 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
     (_input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const out = await readItems(db, hid);
+        const out = await readItems(db);
         return ok(out.items.map(itemLine).join("\n") || "The list is empty.", out);
       }),
   );
@@ -129,7 +127,7 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
             .select("id"),
           "add item",
         );
-        const out = await readItems(db, hid);
+        const out = await readItems(db);
         return ok(`Added ${input.name}.`, out);
       }),
   );
@@ -160,7 +158,7 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
           throw new ToolError("Nothing to update.");
         const item = await resolveItem(db, hid, input);
         must(await db.from("shopping_items").update(patch).eq("id", item.id).select("id"), "update item");
-        const out = await readItems(db, hid);
+        const out = await readItems(db);
         const what = patch.name
           ? `Renamed ${item.name} to ${patch.name}.`
           : `${item.name}: ${patch.checked ? "checked" : "unchecked"}.`;
@@ -185,7 +183,7 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
           await db.from("shopping_items").delete().eq("household_id", hid).eq("checked", true).select("id"),
           "clear",
         );
-        const out = await readItems(db, hid);
+        const out = await readItems(db);
         return ok(`Cleared ${removed.length} item(s).`, { ...out, removed: removed.length });
       }),
   );
@@ -254,7 +252,7 @@ export function registerShoppingTools(server: MCPServer<SupabaseOAuthUser>) {
             "add items",
           );
         }
-        const out = await readItems(db, hid);
+        const out = await readItems(db);
         return ok(
           `Added ${fresh.length} item(s) for ${recipe.title}${fresh.length < ingredients.length ? ` (${ingredients.length - fresh.length} already on the list)` : ""}.`,
           {

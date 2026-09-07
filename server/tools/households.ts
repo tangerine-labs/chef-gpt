@@ -2,7 +2,7 @@ import type { MCPServer } from "mcp-use";
 import type { SupabaseOAuthUser } from "mcp-use/oauth/supabase";
 import { z } from "zod";
 import { AUTH_SITE_URL } from "../config.ts";
-import { householdId, must, ToolError, userDb } from "../db.ts";
+import { householdBundle, householdId, must, ToolError, userDb } from "../db.ts";
 import { resolveMember } from "./resolve.ts";
 import { guarded, hints, ok } from "./results.ts";
 
@@ -41,33 +41,15 @@ export function registerHouseholdTools(server: MCPServer<SupabaseOAuthUser>) {
     (_input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const household = must(
-          await db.from("households").select("id, name").eq("id", hid).maybeSingle(),
-          "household",
-        );
-        const [members, invites] = await Promise.all([
-          must(
-            await db.from("members").select("id, name, user_id").eq("household_id", hid).order("created_at"),
-            "members",
-          ),
-          must(
-            await db
-              .from("invites")
-              .select("code, expires_at, members(name)")
-              .eq("household_id", hid)
-              .is("used_at", null)
-              .gt("expires_at", new Date().toISOString()),
-            "invites",
-          ),
-        ]);
+        const b = await householdBundle(db);
+        const household = b.household;
         const out = {
           household,
-          members: members.map((m) => ({ id: m.id, name: m.name, linked: m.user_id !== null })),
-          invites: invites.map((i) => ({
+          members: b.members.map((m) => ({ id: m.id, name: m.name, linked: m.user_id !== null })),
+          invites: b.invites.map((i) => ({
             code: pretty(i.code),
             expiresAt: i.expires_at,
-            forMember: (i.members as unknown as { name: string } | null)?.name ?? null,
+            forMember: i.member_name,
             link: inviteLink(i.code),
           })),
         };

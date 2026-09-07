@@ -51,31 +51,23 @@ type Scope = {
 
 /** Cookbooks the household can see, with system ones' enabled flag, plus its retired recipe ids. */
 async function scope(db: Db): Promise<Scope> {
-  const hid = await householdId(db);
-  const [cookbooks, settings, retired] = await Promise.all([
-    must(
-      await db
-        .from("cookbooks")
-        .select("id, name, household_id")
-        .order("household_id", { nullsFirst: false }),
-      "cookbooks",
-    ),
-    must(
-      await db.from("household_cookbooks").select("cookbook_id, enabled").eq("household_id", hid),
-      "cookbook settings",
-    ),
-    must(await db.from("retired_recipes").select("recipe_id").eq("household_id", hid), "retired"),
-  ]);
-  const disabled = new Set(settings.filter((s) => !s.enabled).map((s) => s.cookbook_id));
+  type Raw = {
+    household_id: string;
+    cookbooks: { id: string; name: string; household_id: string | null }[];
+    settings: { cookbook_id: string; enabled: boolean }[];
+    retired: string[];
+  };
+  const raw = must(await db.rpc("recipe_scope"), "cookbooks") as unknown as Raw;
+  const disabled = new Set(raw.settings.filter((s) => !s.enabled).map((s) => s.cookbook_id));
   return {
-    hid,
-    cookbooks: cookbooks.map((c) => ({
+    hid: raw.household_id,
+    cookbooks: raw.cookbooks.map((c) => ({
       id: c.id,
       name: c.name,
       system: c.household_id === null,
       enabled: !disabled.has(c.id),
     })),
-    retired: new Set(retired.map((r) => r.recipe_id)),
+    retired: new Set(raw.retired),
   };
 }
 

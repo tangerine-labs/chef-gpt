@@ -1,7 +1,7 @@
 import type { MCPServer } from "mcp-use";
 import type { SupabaseOAuthUser } from "mcp-use/oauth/supabase";
 import { z } from "zod";
-import { householdId, must, userDb } from "../db.ts";
+import { householdBundle, householdId, must, userDb } from "../db.ts";
 import { resolveMember } from "./resolve.ts";
 import { guarded, hints, ok } from "./results.ts";
 
@@ -24,12 +24,11 @@ export function registerMemberTools(server: MCPServer<SupabaseOAuthUser>) {
     (_input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const rows = must(
-          await db.from("members").select("id, name, user_id").eq("household_id", hid).order("created_at"),
-          "members",
-        );
-        const members = rows.map((m) => ({ id: m.id, name: m.name, linked: m.user_id !== null }));
+        const members = (await householdBundle(db)).members.map((m) => ({
+          id: m.id,
+          name: m.name,
+          linked: m.user_id !== null,
+        }));
         return ok(members.map((m) => `- ${m.name}${m.linked ? "" : " (no account)"}`).join("\n"), {
           members,
         });

@@ -3,7 +3,7 @@ import type { SupabaseOAuthUser } from "mcp-use/oauth/supabase";
 import { z } from "zod";
 import { rankedList, TIERS } from "../../packages/domain/mod.ts";
 import { PUBLIC_BASE, SITE_ORIGIN } from "../config.ts";
-import { type Db, householdId, must, ToolError, userDb } from "../db.ts";
+import { type Db, householdBundle, must, ToolError, userDb } from "../db.ts";
 import { pickByName, resolveRecipe } from "./resolve.ts";
 import { guarded, hints, ok } from "./results.ts";
 
@@ -33,74 +33,66 @@ const RoundInfo = z.object({
 export const proxied = (url: string | null): string | null =>
   url ? `${SITE_ORIGIN}${PUBLIC_BASE}/img?u=${encodeURIComponent(url)}` : null;
 
-async function roundInfo(db: Db, roundId: string) {
-  const round = must(await db.from("rounds").select("*").eq("id", roundId).maybeSingle(), "round");
-  const [participants, rankings, candidates] = await Promise.all([
-    must(
-      await db.from("round_participants").select("member_id, members(name)").eq("round_id", roundId),
-      "participants",
-    ),
-    must(await db.from("rankings").select("member_id").eq("round_id", roundId), "rankings"),
-    must(await db.from("round_candidates").select("recipe_id").eq("round_id", roundId), "candidates"),
-  ]);
-  const voted = new Set(rankings.map((r) => r.member_id));
+/** What `round_bundle` returns (migration 20260907220000), or null when there is no such round. */
+type RoundBundle = {
+  round: { id: string; label: string; status: "open" | "closed"; created_at: string };
+  participants: { member_id: string; name: string }[];
+  voted: string[];
+  candidates: {
+    recipe_id: string;
+    title: string;
+    description: string;
+    cuisine: string | null;
+    cook_time_minutes: number | null;
+    image_url: string | null;
+  }[];
+  entries: { member_id: string; recipe_id: string; tier: (typeof TIERS)[number] }[];
+};
+
+/**
+ * Everything the round tools read, in one round trip (docs/performance.md §5): `roundId` names
+ * the round, otherwise the household's latest round with `status`.
+ */
+async function roundBundle(db: Db, ref: { roundId?: string; status: "open" | "closed" }) {
+  // The generated types call rid non-null; the function takes null for "the latest".
+  const args = { rid: ref.roundId ?? null, want: ref.status } as unknown as {
+    rid: string;
+    want: typeof ref.status;
+  };
+  const { data, error } = await db.rpc("round_bundle", args);
+  if (error) throw new ToolError(`round: ${error.message}`);
+  const b = data as unknown as RoundBundle | null;
+  if (!b) {
+    if (ref.roundId) throw new ToolError("Round not found.");
+    throw new ToolError(
+      `No ${ref.status} round. ${ref.status === "open" ? "Start one with start_round." : ""}`.trim(),
+    );
+  }
+  const voted = new Set(b.voted);
   return {
-    row: round,
     info: {
-      id: round.id,
-      label: round.label,
-      status: round.status,
-      createdAt: round.created_at,
-      participants: participants.map((p) => ({
+      id: b.round.id,
+      label: b.round.label,
+      status: b.round.status,
+      createdAt: b.round.created_at,
+      participants: b.participants.map((p) => ({
         memberId: p.member_id,
-        name: (p.members as unknown as { name: string })?.name ?? "?",
+        name: p.name,
         hasVoted: voted.has(p.member_id),
       })),
-      candidateCount: candidates.length,
+      candidateCount: b.candidates.length,
     },
-    candidateIds: candidates.map((c) => c.recipe_id),
+    candidateIds: b.candidates.map((c) => c.recipe_id),
+    cards: b.candidates.map((c) => ({
+      recipeId: c.recipe_id,
+      title: c.title,
+      description: c.description,
+      cuisine: c.cuisine,
+      cookTimeMinutes: c.cook_time_minutes,
+      imageUrl: proxied(c.image_url),
+    })),
+    entries: b.entries,
   };
-}
-
-async function latestRound(db: Db, hid: string, status: "open" | "closed"): Promise<string> {
-  const rows = must(
-    await db
-      .from("rounds")
-      .select("id")
-      .eq("household_id", hid)
-      .eq("status", status)
-      .order("created_at", { ascending: false })
-      .limit(1),
-    "rounds",
-  );
-  if (rows.length === 0)
-    throw new ToolError(
-      `No ${status} round. ${status === "open" ? "Start one with start_round." : ""}`.trim(),
-    );
-  return rows[0].id;
-}
-
-async function candidateCards(db: Db, candidateIds: string[]) {
-  if (candidateIds.length === 0) return [];
-  const rows = must(
-    await db
-      .from("recipes")
-      .select("id, title, description, cuisine, cook_time_minutes, image_url")
-      .in("id", candidateIds),
-    "recipes",
-  );
-  const byId = new Map(rows.map((r) => [r.id, r]));
-  return candidateIds
-    .map((id) => byId.get(id))
-    .filter((r) => r !== undefined)
-    .map((r) => ({
-      recipeId: r.id,
-      title: r.title,
-      description: r.description,
-      cuisine: r.cuisine,
-      cookTimeMinutes: r.cook_time_minutes,
-      imageUrl: proxied(r.image_url),
-    }));
 }
 
 const waitingText = (info: { participants: { name: string; hasVoted: boolean }[] }) => {
@@ -126,11 +118,7 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
     (_input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const members = must(
-          await db.from("members").select("id, name").eq("household_id", hid).order("created_at"),
-          "members",
-        );
+        const { members } = await householdBundle(db);
         return ok("Round Builder is open: pick candidates, choose voters, and start the round.", {
           members: members.map((m) => ({ memberId: m.id, name: m.name })),
           candidateDefault: 10,
@@ -160,16 +148,13 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
+        const { household, members } = await householdBundle(db);
+        const hid = household.id;
         const byTitle = await Promise.all(
           (input.candidates ?? []).map((t) => resolveRecipe(db, { recipe: t }).then((r) => r.id)),
         );
         const candidateRecipeIds = [...new Set([...(input.candidateRecipeIds ?? []), ...byTitle])];
         if (candidateRecipeIds.length < 2) throw new ToolError("A round needs at least two candidates.");
-        const members = must(
-          await db.from("members").select("id, name").eq("household_id", hid).order("created_at"),
-          "members",
-        );
         let participantIds = input.participantMemberIds ?? [];
         if (input.participants?.length)
           participantIds = [
@@ -203,7 +188,7 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
             .select("round_id"),
           "participants",
         );
-        const { info } = await roundInfo(db, round.id);
+        const { info } = await roundBundle(db, { roundId: round.id, status: "open" });
         return ok(
           `Round${info.label ? ` "${info.label}"` : ""} started with ${info.candidateCount} candidates; ${waitingText(info)}.`,
           { round: info },
@@ -228,11 +213,8 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const roundId = input.roundId ?? (await latestRound(db, hid, "open"));
-        const { info, candidateIds } = await roundInfo(db, roundId);
+        const { info, cards: candidates } = await roundBundle(db, { roundId: input.roundId, status: "open" });
         if (info.status !== "open") throw new ToolError("That round is closed; use get_round_results.");
-        const candidates = await candidateCards(db, candidateIds);
         return ok(`Voting is open (${info.candidateCount} candidates); ${waitingText(info)}.`, {
           round: info,
           candidates,
@@ -266,17 +248,20 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const roundId = input.roundId ?? (await latestRound(db, hid, "open"));
-        const { row, info, candidateIds } = await roundInfo(db, roundId);
-        if (row.status !== "open") throw new ToolError("The round is closed; rankings can no longer change.");
+        const { info, candidateIds, cards } = await roundBundle(db, {
+          roundId: input.roundId,
+          status: "open",
+        });
+        const roundId = info.id;
+        if (info.status !== "open")
+          throw new ToolError("The round is closed; rankings can no longer change.");
         if (!input.member && !input.memberId)
           throw new ToolError("Say who is voting: member (name) or memberId.");
         const voter = input.memberId
           ? info.participants.find((p) => p.memberId === input.memberId)
           : pickByName(info.participants, input.member ?? "", "participant");
         if (!voter) throw new ToolError("That member is not a participant in this round.");
-        const titled = (await candidateCards(db, candidateIds)).map((c) => ({
+        const titled = cards.map((c) => ({
           id: c.recipeId,
           name: c.title,
         }));
@@ -309,7 +294,7 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
             .select("ranking_id"),
           "entries",
         );
-        const after = await roundInfo(db, roundId);
+        const after = await roundBundle(db, { roundId, status: "open" });
         const votedCount = after.info.participants.filter((p) => p.hasVoted).length;
         const closed = after.info.status === "closed";
         const name = voter.name;
@@ -334,8 +319,7 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const roundId = input.roundId ?? (await latestRound(db, hid, "open"));
+        const roundId = input.roundId ?? (await roundBundle(db, { status: "open" })).info.id;
         must(
           await db
             .from("rounds")
@@ -345,7 +329,7 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
             .select("id"),
           "close round",
         );
-        const { info } = await roundInfo(db, roundId);
+        const { info } = await roundBundle(db, { roundId, status: "closed" });
         return ok("Round closed. Use get_round_results for the ranked list.", { round: info });
       }),
   );
@@ -372,28 +356,24 @@ export function registerRoundTools(server: MCPServer<SupabaseOAuthUser>) {
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const hid = await householdId(db);
-        const roundId = input.roundId ?? (await latestRound(db, hid, "closed"));
-        const { info, candidateIds } = await roundInfo(db, roundId);
+        const {
+          info,
+          candidateIds,
+          cards,
+          entries: raw,
+        } = await roundBundle(db, {
+          roundId: input.roundId,
+          status: "closed",
+        });
         if (info.status !== "closed")
           throw new ToolError(`Results are hidden while voting is open (${waitingText(info)}).`);
-        const rankings = must(
-          await db
-            .from("rankings")
-            .select("id, member_id, ranking_entries(recipe_id, tier)")
-            .eq("round_id", roundId),
-          "rankings",
-        );
         const nameOf = new Map(info.participants.map((p) => [p.memberId, p.name]));
-        const entries = rankings.flatMap((r) =>
-          (r.ranking_entries as { recipe_id: string; tier: (typeof TIERS)[number] }[]).map((e) => ({
-            recipeId: e.recipe_id,
-            memberId: nameOf.get(r.member_id) ?? r.member_id,
-            tier: e.tier,
-          })),
-        );
+        const entries = raw.map((e) => ({
+          recipeId: e.recipe_id,
+          memberId: nameOf.get(e.member_id) ?? e.member_id,
+          tier: e.tier,
+        }));
         const list = rankedList(candidateIds, entries);
-        const cards = await candidateCards(db, candidateIds);
         const cardById = new Map(cards.map((c) => [c.recipeId, c]));
         const ranked = list.map((r) => ({
           ...(cardById.get(r.recipeId) ?? {
