@@ -76,15 +76,7 @@ Each app is an MCP App: it opens inside the Claude conversation when the matchin
 
 ### Or just ask
 
-Five prompts appear in Claude Desktop's "+" menu. Each one is a routine the household already has.
-
-- **Plan the week.** Fill the week's dinners from the latest ranked list, then offer to shop for them.
-- **Start a voting round.** Put together a round of candidate dinners and open voting.
-- **What's for dinner tonight?** Tonight's plan, its recipe, and what is missing from the shopping list.
-- **Shopping run.** Read the list grouped by recipe, add what I dictate, clear what I bought.
-- **Set up the household.** Add the people who live here and invite the adults to connect their own Claude.
-
-And anything in between: tools take names, not ids. "Retire the tofu bowl", "add milk", "who still needs to vote?" A name that matches two recipes comes back as a question, never a guess.
+Everything the apps do you can also say: "plan the week from the last round", "what's for dinner tonight?", "I'm going shopping". Tools take names, not ids. "Retire the tofu bowl", "add milk", "who still needs to vote?" A name that matches two recipes comes back as a question, never a guess.
 
 ### Kids vote too
 
@@ -110,7 +102,7 @@ chef-gpt is open source. The whole stack is one Supabase project: Postgres with 
 
 ### FAQ
 
-**Which Claude do I need?** Claude Desktop with custom connectors (a paid plan). The apps render in the desktop app; the tools and prompts also work anywhere the connector is available.
+**Which Claude do I need?** Claude Desktop with custom connectors (a paid plan). The apps render in the desktop app; the tools also work anywhere the connector is available.
 
 **Is there a winner?** No. A closed round gives a ranked list, candidates ordered by summed tier points. People choose from it by hand.
 

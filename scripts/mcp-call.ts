@@ -5,8 +5,6 @@
  *   deno task mcp call whoami
  *   deno task mcp call search_recipes '{"query":"tofu","limit":3}'
  *   deno task mcp read ui://views/vote.html             resources/read
- *   deno task mcp prompts                               prompts/list (names + arguments)
- *   deno task mcp prompt plan-week '{"date":"2026-09-07"}'   prompts/get (prints the messages)
  *
  * Flags: --user a|b (test user, default a) · --url <mcp url> (default $SUPABASE_URL/functions/v1/chef/mcp)
  *        --local (in-process against server/.mcp-use/build — run `deno task build` first) · -v (full JSON)
@@ -70,30 +68,6 @@ switch (cmd) {
     }
     break;
   }
-  case "prompts": {
-    const msg = await rpc("prompts/list", {});
-    const prompts = msg.result?.prompts ?? [];
-    if (verbose) console.log(JSON.stringify(prompts, null, 2));
-    else
-      for (const p of prompts) {
-        const args = (p.arguments ?? []).map((a: { name: string; required?: boolean }) =>
-          a.required ? a.name : `${a.name}?`,
-        );
-        console.log(`${p.name}${args.length ? ` (${args.join(", ")})` : ""}  ${p.description ?? ""}`);
-      }
-    console.log(`\n${prompts.length} prompts`);
-    break;
-  }
-  case "prompt": {
-    if (!name) throw new Error("usage: mcp prompt <name> ['{json args}']");
-    const msg = await rpc("prompts/get", { name, arguments: rawArgs ? JSON.parse(rawArgs) : {} });
-    const r = msg.result ?? msg.error;
-    if (verbose || !r.messages) console.log(JSON.stringify(r, null, 2));
-    else
-      for (const m of r.messages)
-        console.log(`[${m.role}]\n${m.content?.text ?? JSON.stringify(m.content)}\n`);
-    break;
-  }
   case "read": {
     if (!name) throw new Error("usage: mcp read <uri>");
     const msg = await rpc("resources/read", { uri: name });
@@ -102,6 +76,6 @@ switch (cmd) {
     break;
   }
   default:
-    console.log("usage: deno task mcp <list|call|read|prompts|prompt> … (see scripts/mcp-call.ts header)");
+    console.log("usage: deno task mcp <list|call|read> … (see scripts/mcp-call.ts header)");
 }
 Deno.exit(0);
