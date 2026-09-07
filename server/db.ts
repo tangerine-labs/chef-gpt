@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./config.ts";
 import type { Database } from "./db.types.ts";
+import { timedFetch } from "./timing.ts";
 
 export type Db = ReturnType<typeof userDb>;
 export type Tables = Database["public"]["Tables"];
@@ -11,7 +12,7 @@ export type CookbookRow = Tables["cookbooks"]["Row"];
 export function userDb(accessToken: string) {
   return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    global: { headers: { Authorization: `Bearer ${accessToken}` }, fetch: timedFetch },
   });
 }
 

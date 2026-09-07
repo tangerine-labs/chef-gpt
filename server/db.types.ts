@@ -206,6 +206,57 @@ export type Database = {
           },
         ];
       };
+      perf_samples: {
+        Row: {
+          at: string;
+          commit: string | null;
+          db_calls: number | null;
+          extra: Json | null;
+          host: string | null;
+          id: number;
+          ms_boot: number | null;
+          ms_db: number | null;
+          ms_handle: number | null;
+          ms_total: number;
+          name: string;
+          region: string | null;
+          source: string;
+          worker: string | null;
+        };
+        Insert: {
+          at?: string;
+          commit?: string | null;
+          db_calls?: number | null;
+          extra?: Json | null;
+          host?: string | null;
+          id?: never;
+          ms_boot?: number | null;
+          ms_db?: number | null;
+          ms_handle?: number | null;
+          ms_total: number;
+          name: string;
+          region?: string | null;
+          source: string;
+          worker?: string | null;
+        };
+        Update: {
+          at?: string;
+          commit?: string | null;
+          db_calls?: number | null;
+          extra?: Json | null;
+          host?: string | null;
+          id?: never;
+          ms_boot?: number | null;
+          ms_db?: number | null;
+          ms_handle?: number | null;
+          ms_total?: number;
+          name?: string;
+          region?: string | null;
+          source?: string;
+          worker?: string | null;
+        };
+        Relationships: [];
+      };
       ranking_entries: {
         Row: {
           ranking_id: string;
@@ -585,7 +636,19 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      perf_daily: {
+        Row: {
+          day: string | null;
+          name: string | null;
+          p50_db_ms: number | null;
+          p50_ms: number | null;
+          p95_ms: number | null;
+          samples: number | null;
+          source: string | null;
+          workers: number | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       cookbook_household: { Args: { cid: string }; Returns: string };

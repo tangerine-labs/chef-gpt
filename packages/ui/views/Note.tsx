@@ -5,7 +5,7 @@
  * target is whatever `[data-drop]` element lies under the pointer when it is released.
  * Signal materials, see docs/design-system.md.
  */
-import { type CSSProperties, type PointerEvent as ReactPointerEvent, useRef } from "react";
+import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useRef } from "react";
 import css from "./signal.module.css";
 
 export type NoteProps = {
@@ -42,11 +42,24 @@ export function Note({
   onOver,
 }: NoteProps) {
   const ref = useRef<HTMLButtonElement>(null);
-  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const drag = useRef<{ x: number; y: number; moved: boolean; touch: boolean } | null>(null);
+
+  // A finger never holds still, so a touch needs more travel than a mouse before it counts as a
+  // drag; and once it does, the page must not scroll under it. React registers touch listeners as
+  // passive, so the scroll block is attached by hand.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const block = (e: TouchEvent) => {
+      if (drag.current?.moved) e.preventDefault();
+    };
+    el.addEventListener("touchmove", block, { passive: false });
+    return () => el.removeEventListener("touchmove", block);
+  }, []);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return;
-    drag.current = { x: e.clientX, y: e.clientY, moved: false };
+    drag.current = { x: e.clientX, y: e.clientY, moved: false, touch: e.pointerType === "touch" };
     ref.current?.setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
@@ -55,7 +68,7 @@ export function Note({
     if (!d || !el) return;
     const dx = e.clientX - d.x;
     const dy = e.clientY - d.y;
-    if (!d.moved && Math.hypot(dx, dy) < 4) return;
+    if (!d.moved && Math.hypot(dx, dy) < (d.touch ? 10 : 4)) return;
     d.moved = true;
     el.classList.add(css.dragging);
     el.style.transform = `translate(${dx}px, ${dy}px) rotate(-1deg) scale(1.02)`;
@@ -74,7 +87,14 @@ export function Note({
       return;
     }
     el.classList.remove(css.dragging);
-    const target = e.type === "pointercancel" ? null : dropTargetAt(e.clientX, e.clientY);
+    if (e.type === "pointercancel") {
+      // The platform took the touch (a scroll or a system gesture). Leave the note picked up so a
+      // tap on a row still finishes the job, and put it back where it was.
+      el.style.transform = "";
+      if (!picked) onPick();
+      return;
+    }
+    const target = dropTargetAt(e.clientX, e.clientY);
     // FLIP: the note re-renders in its new home; animate from where it was dropped.
     const from = el.getBoundingClientRect();
     el.style.transform = "";

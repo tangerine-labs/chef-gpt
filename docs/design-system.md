@@ -115,6 +115,7 @@ Research notes: spec `_meta.ui.csp` fields are `connectDomains`, `resourceDomain
 
 - Names first. Titles and first names are what people see; ids never appear.
 - Drag is the primary and required interaction for placing a note. Tap-then-tap and keyboard stay as the fallback path, targets are labelled by name, and the result is announced. Keyboard order follows the sheet top to bottom; do not overthink it.
+- Touch: a drag starts after 10px of travel (4px for a mouse), the page does not scroll while a note is held, and a drag the platform cancels leaves the note picked up so a tap on a target finishes it.
 - There is no winner. A closed round is a ranked list; the language says "ranked list", "pick by hand".
 - Printed things are stable; handwritten things are the household's. Do not make the system write in pen.
 - Flatness is state, not decoration: a flat note is placed or rated, a lifted note is still to do. Tape is the same signal for cards and the notepad.

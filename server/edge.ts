@@ -13,8 +13,12 @@
  *
  * Supabase's internal proxy also presents the request as plain http://; we re-base every
  * forwarded URL on SITE_ORIGIN so generated URLs, cookies and challenges use the public https origin.
+ *
+ * Every response carries a Server-Timing header (boot age, handle time, database time) and the
+ * function logs one JSON line per request; see docs/performance.md.
  */
 import { MCP_PATH, PUBLIC_BASE, SITE_ORIGIN } from "./config.ts";
+import { type RequestTiming, serverTiming, timing, WORKER } from "./timing.ts";
 
 type Fetcher = (req: Request) => Promise<Response> | Response;
 
@@ -27,25 +31,43 @@ export function publicPath(pathname: string): string {
 }
 
 export function createEdgeHandler(fetch: Fetcher): (req: Request) => Promise<Response> {
-  return async (req) => {
-    const incoming = new URL(req.url);
-    const url = new URL(SITE_ORIGIN);
-    url.pathname = publicPath(incoming.pathname);
-    url.search = incoming.search;
-    if (url.pathname === PUBLIC_PRM) url.pathname = ROOT_PRM;
+  return (req) => {
+    const t: RequestTiming = { start: performance.now(), db: 0, dbCalls: 0 };
+    return timing.run(t, async () => {
+      const incoming = new URL(req.url);
+      const url = new URL(SITE_ORIGIN);
+      url.pathname = publicPath(incoming.pathname);
+      url.search = incoming.search;
+      if (url.pathname === PUBLIC_PRM) url.pathname = ROOT_PRM;
 
-    const forwarded = new Request(url, req);
-    const res = await fetch(forwarded);
+      const forwarded = new Request(url, req);
+      const res = await fetch(forwarded);
+      const handleMs = performance.now() - t.start;
 
-    // Always hand the runtime a plain Response with materialised headers.
-    const headers = new Headers(res.headers);
-    const challenge = headers.get("www-authenticate");
-    if (res.status === 401 && challenge?.includes("resource_metadata=")) {
-      headers.set(
-        "www-authenticate",
-        challenge.replace(/resource_metadata="[^"]*"/, `resource_metadata="${url.origin}${PUBLIC_PRM}"`),
+      // Always hand the runtime a plain Response with materialised headers.
+      const headers = new Headers(res.headers);
+      const challenge = headers.get("www-authenticate");
+      if (res.status === 401 && challenge?.includes("resource_metadata=")) {
+        headers.set(
+          "www-authenticate",
+          challenge.replace(/resource_metadata="[^"]*"/, `resource_metadata="${url.origin}${PUBLIC_PRM}"`),
+        );
+      }
+      headers.set("server-timing", serverTiming(t, handleMs));
+      console.log(
+        JSON.stringify({
+          perf: 1,
+          worker: WORKER,
+          path: url.pathname,
+          method: req.headers.get("mcp-method") ?? req.method,
+          name: req.headers.get("mcp-name") ?? undefined,
+          status: res.status,
+          ms: Math.round(handleMs),
+          db: Math.round(t.db),
+          dbCalls: t.dbCalls,
+        }),
       );
-    }
-    return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+      return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+    });
   };
 }

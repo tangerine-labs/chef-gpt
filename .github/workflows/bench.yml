@@ -1,0 +1,26 @@
+name: Bench
+# Runs scripts/bench.ts against the dev project every six hours and after manual dispatch, and
+# stores the samples in perf_samples (docs/performance.md §3). Needs the repo variables
+# SUPABASE_URL and SUPABASE_ANON_KEY (public) and the secrets SUPABASE_SERVICE_ROLE_KEY and
+# TEST_USER_PASSWORD; without the secrets the job skips itself.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    if: ${{ vars.SUPABASE_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Bench
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' && env.TEST_USER_PASSWORD != '' }}
+        run: deno run -A scripts/bench.ts --enforce
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
