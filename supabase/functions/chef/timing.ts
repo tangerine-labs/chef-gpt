@@ -13,15 +13,18 @@ export type RequestTiming = { start: number; db: number; dbCalls: number };
  */
 type Shared = { boot: number; bootMs: number; worker: string; als: AsyncLocalStorage<RequestTiming> };
 const g = globalThis as unknown as { __chefTiming?: Shared };
-const shared: Shared = (g.__chefTiming ??= {
-  /** Wall clock when the first copy evaluated: `age` in Server-Timing. */
-  boot: Date.now(),
-  /** Milliseconds from isolate start to our first module: the boot cost the platform paid. */
-  bootMs: performance.now(),
-  /** Fixed for the life of the worker, so a changing value across responses means a boot per request. */
-  worker: crypto.randomUUID().slice(0, 8),
-  als: new AsyncLocalStorage<RequestTiming>(),
-});
+if (!g.__chefTiming) {
+  g.__chefTiming = {
+    /** Wall clock when the first copy evaluated: `age` in Server-Timing. */
+    boot: Date.now(),
+    /** Milliseconds from isolate start to our first module: the boot cost the platform paid. */
+    bootMs: performance.now(),
+    /** Fixed for the life of the worker, so a changing value across responses means a boot per request. */
+    worker: crypto.randomUUID().slice(0, 8),
+    als: new AsyncLocalStorage<RequestTiming>(),
+  };
+}
+const shared: Shared = g.__chefTiming;
 
 export const BOOT = shared.boot;
 export const WORKER = shared.worker;

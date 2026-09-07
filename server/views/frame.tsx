@@ -72,7 +72,7 @@ export function Frame({
 /** The sheet drawing itself: the dot grid fades in and four rules draw left to right, once. */
 function Drawing() {
   return (
-    <div style={desk} role="status" aria-busy="true" aria-label="Loading">
+    <output style={{ ...desk, display: "block" }} aria-busy="true" aria-label="Loading">
       <style>{`
         @keyframes sg-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
         @keyframes sg-fade { from { opacity: 0; } to { opacity: 1; } }
@@ -93,7 +93,7 @@ function Drawing() {
           />
         ))}
       </div>
-    </div>
+    </output>
   );
 }
 

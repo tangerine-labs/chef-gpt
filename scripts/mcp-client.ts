@@ -12,12 +12,15 @@ export const META = {
   },
 };
 
+/** A JSON-RPC envelope; callers know the shape of `result` for the method they sent. */
+// biome-ignore lint/suspicious/noExplicitAny: shaped by the caller per method
+export type Envelope = { result?: any; error?: any };
+
 export type Rpc = {
-  // biome-ignore lint/suspicious/noExplicitAny: a JSON-RPC envelope, shaped by the caller
   call: (
     method: string,
     params: Record<string, unknown>,
-  ) => Promise<{ msg: any; ms: number; timing: string }>;
+  ) => Promise<{ msg: Envelope; ms: number; timing: string }>;
 };
 
 export async function mcpClient(opts: { url: string; user?: "a" | "b"; local?: boolean }): Promise<Rpc> {
