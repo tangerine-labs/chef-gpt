@@ -67,7 +67,7 @@ Font stack, in CSS:
 
 Space Grotesk (weights 500 and 700, latin subset) and Shadows Into Light (one weight) are bundled into the view as `@font-face` with `data:` sources; see Hosts for why. Inter is not bundled: body copy takes the host's font so the sheet reads as native, and the identity lives in print and pen. On the site, Inter loads from Google Fonts.
 
-**Shape.** Nothing has a radius, including the confirmation note. Rules are 1px, black in light and white in dark. Buttons are 1px-ruled boxes with uppercase Space Grotesk; the primary button is filled black (white in dark). A disabled button is always opaque: it is drawn in `print-muted` (fill for the primary, rule and text for the secondary), never faded with opacity. Notes rotate at most one degree. The auth site keeps its pills until it is restyled.
+**Shape.** Nothing has a radius, including the confirmation note. Rules are 1px, black in light and white in dark. Buttons are 1px-ruled boxes with uppercase Space Grotesk; the primary button is filled black (white in dark). A disabled button is always opaque: it is drawn in `print-muted` (fill for the primary, rule and text for the secondary), never faded with opacity. Notes rotate at most one degree.
 
 **Motion.** A lifted note tilts and casts a deep shadow; on release it settles in 200ms and, if placed, presses flat. Ink appears with a short left-to-right reveal, 300ms. Nothing loops, nothing autoplays, and `prefers-reduced-motion` removes all of it.
 
@@ -125,7 +125,7 @@ Research notes: spec `_meta.ui.csp` fields are `connectDomains`, `resourceDomain
 
 This document is the source of truth; the fixture gallery (`site/preview.html`, `site/src/fixtures.ts`) is the living proof and is updated right after it. Order of work: this document, then the gallery, then `packages/ui` components.
 
-Built so far: tokens in `packages/ui/signal.css` (fonts bundled from `packages/ui/fonts/`), materials in `packages/ui/views/signal.module.css`, the sticky note as a shared component (`packages/ui/views/Note.tsx`: drag, tap-then-tap, keyboard, loose or placed), the Vote view (tier rows and tray), the Week plan view (seven day rows, the ranked list as a tray, free text in pen, a placed note moves between days or back to the tray) the Shopping list (a spiral notepad sheet taped at the corners, one item per rule, pen ticks and strikes, a pen note naming the recipe, "add an item" on the next rule) and the Round builder (a printed search line, results as printed rows with Add, the tray filling with loose notes, participants as printed names with a pen tick, the label in pen), each with stories in the gallery. Still on the old look: the auth site.
+Built so far: tokens in `packages/ui/signal.css` (fonts bundled from `packages/ui/fonts/`), materials in `packages/ui/views/signal.module.css`, the sticky note as a shared component (`packages/ui/views/Note.tsx`: drag, tap-then-tap, keyboard, loose or placed), the Vote view (tier rows and tray), the Week plan view (seven day rows, the ranked list as a tray, free text in pen, a placed note moves between days or back to the tray) the Shopping list (a spiral notepad sheet taped at the corners, one item per rule, pen ticks and strikes, a pen note naming the recipe, "add an item" on the next rule) and the Round builder (a printed search line, results as printed rows with Add, the tray filling with loose notes, participants as printed names with a pen tick, the label in pen), each with stories in the gallery, and the auth site (`site/src/auth.module.css` only; `App.tsx` untouched) as one printed sheet on the desk.
 
 ## Rejected on the way
 
@@ -133,4 +133,4 @@ Stationery (cream, blue pen), Nordic pastels, Hygge, Fjord and Moss: all read we
 
 ## Not decided
 
-Member marks (emoji, background colour) and whether members get cards; how a compact note reveals its full title; the auth page's card; the site's landing page beyond the Notes cut.
+Member marks (emoji, background colour) and whether members get cards; how a compact note reveals its full title; the site's landing page beyond the Notes cut.
