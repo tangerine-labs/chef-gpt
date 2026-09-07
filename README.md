@@ -22,9 +22,8 @@ It writes everything it collects to `.env` (see `.env.example`) and is safe to r
 deno task test          # domain + server tests
 deno task build         # bundle server + inline views → server/.mcp-use/build
 deno task dev           # mcp-use inspector (views without a chat host)
-deno task stage:edge    # build and copy the bundle into supabase/functions/chef
+deno task deploy        # build with external views, upload them to Storage, deploy the function (--prod for prod)
 deno task build:site    # static auth site → site/dist (deployed by .github/workflows/pages.yml)
-supabase functions deploy chef --project-ref <ref> --no-verify-jwt
 ```
 
 Always `deno task <name>` (or `deno run <name>`) — a bare `deno preview:snap` is parsed as a URL and fails with `Unsupported scheme "preview"`.
