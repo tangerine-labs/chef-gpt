@@ -13,6 +13,7 @@
     "build:site": "cd site && deno run -A npm:vite@8 build && cp dist/index.html dist/404.html",
     "dev:site": "cd site && deno run -A npm:vite@8",
     "mcp": "deno run -A --env-file=.env scripts/mcp-call.ts",
+    "bench": "deno run -A --env-file=.env scripts/bench.ts",
     "snap": "deno run -A --env-file=.env scripts/snap.ts",
     "preview": "cd site && deno run -A npm:vite@8 --open /chef-gpt/preview.html",
     "preview:snap": "deno run -A scripts/preview-snap.ts"

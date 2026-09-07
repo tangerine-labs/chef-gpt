@@ -42,7 +42,9 @@ export default function View() {
   const ctx = useToolContext();
   return (
     <ThemeProvider>
-      <Frame ctx={ctx}>{(o) => <Wired {...(o as Output)} />}</Frame>
+      <Frame ctx={ctx} view="round-builder">
+        {(o) => <Wired {...(o as Output)} />}
+      </Frame>
     </ThemeProvider>
   );
 }

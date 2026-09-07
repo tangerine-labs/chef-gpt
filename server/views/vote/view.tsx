@@ -30,7 +30,9 @@ export default function View() {
   const ctx = useToolContext();
   return (
     <ThemeProvider>
-      <Frame ctx={ctx}>{(o) => <Wired {...(o as Output)} />}</Frame>
+      <Frame ctx={ctx} view="vote">
+        {(o) => <Wired {...(o as Output)} />}
+      </Frame>
     </ThemeProvider>
   );
 }
