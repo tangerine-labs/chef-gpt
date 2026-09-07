@@ -1,6 +1,3 @@
-// Supabase Edge Function entry. `server.js` (the mcp-use bundle with views inlined) and
-// `edge.ts` are staged here by `deno task stage:edge`.
-import { createEdgeHandler } from "./edge.ts";
-import server from "./server.js";
-
-Deno.serve(createEdgeHandler((req) => server.fetch(req)));
+// Supabase Edge Function entry. `bundle.js` is the mcp-use server bundled with the edge shim into
+// one module by `deno task deploy` (scripts/deploy.ts); it is not checked in.
+import "./bundle.js";
