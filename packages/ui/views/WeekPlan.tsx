@@ -28,6 +28,8 @@ export function WeekPlanView({ week: initial, ranked, onSet }: WeekPlanProps) {
   const [over, setOver] = useState<string | null>(null);
   const [typing, setTyping] = useState<{ date: string; text: string } | null>(null);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState("");
   const [live, setLive] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const w = week ?? initial;
@@ -62,14 +64,23 @@ export function WeekPlanView({ week: initial, ranked, onSet }: WeekPlanProps) {
     setTyping(null);
     const before = w;
     setWeek(optimistic);
+    setSaving(true);
     say(changes.map((c) => c.line).join(" "));
+    const t0 = performance.now();
     try {
       let next = optimistic;
-      for (const c of changes) next = await onSet(c.date, c.change, c.line);
+      for (const c of changes) {
+        const got = await onSet(c.date, c.change, c.line);
+        // a host that hands back a result without the week must not undo what we showed
+        if (got?.days) next = got;
+      }
       setWeek(next);
+      setSaved(`saved · ${((performance.now() - t0) / 1000).toFixed(1)} s`);
     } catch (e) {
       setWeek(before);
       setError(errorText(e));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -141,7 +152,7 @@ export function WeekPlanView({ week: initial, ranked, onSet }: WeekPlanProps) {
       <div className={`${css.sheet} ${picked ? css.picking : ""}`}>
         <div className={css.head}>
           <p className={css.label}>Meal plan · week of {w.weekStart.slice(5)}</p>
-          <p className={css.labelMuted}>Monday start · dinners</p>
+          <p className={css.labelMuted}>{saving ? "saving…" : saved || "Monday start · dinners"}</p>
         </div>
 
         <section className={css.days} aria-label="Days">
