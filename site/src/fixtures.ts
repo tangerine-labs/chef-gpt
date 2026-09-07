@@ -4,6 +4,7 @@ import type {
   Ranked,
   RecipeSummary,
   ShoppingList,
+  SlotChange,
   Week,
 } from "../../packages/ui/mod.ts";
 
@@ -40,7 +41,7 @@ export const recipes: RecipeSummary[] = [
   { id: "r4", title: "Pandekager", cuisine: null, cookTimeMinutes: null, cookbook: "Our recipes" },
 ];
 
-export const candidates: Candidate[] = recipes.slice(0, 3).map((r) => ({
+export const candidates: Candidate[] = recipes.map((r) => ({
   recipeId: r.id,
   title: r.title,
   cuisine: r.cuisine,
@@ -119,3 +120,37 @@ export const emptyShopping: ShoppingList = { items: [], uncheckedCount: 0 };
 /** Simulates a slow host: resolves after `ms`, or rejects when `fail` is set. */
 export const later = <T>(value: T, ms = 600, fail?: string): Promise<T> =>
   new Promise((resolve, reject) => setTimeout(() => (fail ? reject(new Error(fail)) : resolve(value)), ms));
+
+/** What set_slot would do, for the gallery: the week with one day's dinner changed. */
+export const applySlot = (w: Week, date: string, change: SlotChange): Week => ({
+  ...w,
+  days: w.days.map((d) => {
+    if (d.date !== date) return d;
+    const rest = d.slots.filter((s) => s.mealType !== "dinner");
+    if ("clear" in change) return { ...d, slots: rest };
+    if ("title" in change)
+      return { ...d, slots: [...rest, { date, mealType: "dinner", recipe: null, title: change.title }] };
+    const r = ranked.find((x) => x.recipeId === change.recipeId);
+    return {
+      ...d,
+      slots: [
+        ...rest,
+        {
+          date,
+          mealType: "dinner",
+          recipe: { id: change.recipeId, title: r?.title ?? change.recipeId, imageUrl: r?.imageUrl ?? null },
+          title: null,
+        },
+      ],
+    };
+  }),
+});
+
+/** A stateful onSet for the gallery, so placed notes stay placed. */
+export const weekSetter = (start: Week) => {
+  let w = start;
+  return (date: string, change: SlotChange) => {
+    w = applySlot(w, date, change);
+    return later(w);
+  };
+};

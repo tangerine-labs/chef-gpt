@@ -5,4 +5,4 @@ export { ShoppingListView } from "./views/ShoppingList.tsx";
 export * from "./views/tiers.ts";
 export * from "./views/types.ts";
 export { VoteView } from "./views/Vote.tsx";
-export { WeekPlanView } from "./views/WeekPlan.tsx";
+export { type SlotChange, WeekPlanView } from "./views/WeekPlan.tsx";
