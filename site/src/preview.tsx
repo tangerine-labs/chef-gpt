@@ -75,6 +75,26 @@ const stories: Story[] = [
     ),
   },
   {
+    name: "Vote — long names",
+    width: 700,
+    render: () => (
+      <VoteView
+        round={{
+          id: "round1",
+          label: "Week 37",
+          participants: [
+            { memberId: "a", name: "irena.soderqvist", hasVoted: false },
+            { memberId: "b", name: "Björn Söderqvist", hasVoted: true },
+            { memberId: "c", name: "Adrian", hasVoted: false },
+            { memberId: "d", name: "Leo", hasVoted: false },
+          ],
+        }}
+        candidates={fx.candidates}
+        onSubmit={() => fx.later("Your ranking is in.")}
+      />
+    ),
+  },
+  {
     name: "Vote — rating",
     width: 600,
     render: () => (

@@ -98,8 +98,14 @@ export function VoteView({ round, candidates, onSubmit, initial }: VoteProps) {
           <h1 className={css.title}>Who's rating?</h1>
           <div className={css.roster}>
             {round.participants.map((p) => (
-              <button type="button" key={p.memberId} className={css.member} onClick={() => setMember(p)}>
-                {p.name}
+              <button
+                type="button"
+                key={p.memberId}
+                className={css.member}
+                onClick={() => setMember(p)}
+                title={p.name}
+              >
+                <span className={css.memberName}>{p.name}</span>
                 <small>{p.hasVoted ? "rated ✓" : "to do"}</small>
               </button>
             ))}
