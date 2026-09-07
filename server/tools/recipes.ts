@@ -142,27 +142,45 @@ export function registerRecipeTools(server: MCPServer<SupabaseOAuthUser>) {
     (input, ctx) =>
       guarded(async () => {
         const db = userDb(ctx.auth.accessToken);
-        const s = await scope(db);
-        const ids = s.cookbooks
-          .filter((c) => c.enabled && (!input.cookbookId || c.id === input.cookbookId))
-          .map((c) => c.id);
-        let q = db.from("recipes").select("*", { count: "exact" }).in("cookbook_id", ids);
-        if (input.query) {
-          const like = `%${input.query.replace(/[%_]/g, "")}%`;
-          q = q.or(`title.ilike.${like},description.ilike.${like}`);
-        }
-        if (input.cuisine) q = q.ilike("cuisine", input.cuisine);
-        if (input.tag) q = q.contains("tags", [input.tag]);
-        if (input.maxCookTimeMinutes) q = q.lte("cook_time_minutes", input.maxCookTimeMinutes);
-        if (!input.includeRetired && s.retired.size > 0)
-          q = q.not("id", "in", `(${[...s.retired].join(",")})`);
-        const { data, error, count } = await q.order("title").limit(input.limit);
-        if (error) throw new ToolError(`search: ${error.message}`);
-        const recipes = (data ?? []).map((r) => summary(r, s));
+        // One round trip: scope, filters, total and page come back together (migration 20260907230000).
+        type Hit = {
+          id: string;
+          title: string;
+          description: string;
+          cuisine: string | null;
+          cook_time_minutes: number | null;
+          tags: string[];
+          image_url: string | null;
+          cookbook: string;
+          retired: boolean;
+        };
+        const raw = must(
+          await db.rpc("search_recipes", {
+            q: input.query,
+            cuisine_q: input.cuisine,
+            tag_q: input.tag,
+            max_minutes: input.maxCookTimeMinutes,
+            cookbook: input.cookbookId,
+            include_retired: input.includeRetired ?? false,
+            lim: input.limit,
+          }),
+          "search",
+        ) as unknown as { total: number; recipes: Hit[] };
+        const recipes = raw.recipes.map((r) => ({
+          id: r.id,
+          title: r.title,
+          description: r.description,
+          cuisine: r.cuisine,
+          cookTimeMinutes: r.cook_time_minutes,
+          tags: r.tags,
+          imageUrl: r.image_url,
+          cookbook: r.cookbook,
+          retired: r.retired,
+        }));
         const text = recipes.length
-          ? `${count ?? recipes.length} match(es), showing ${recipes.length}:\n${recipes.map(line).join("\n")}`
+          ? `${raw.total} match(es), showing ${recipes.length}:\n${recipes.map(line).join("\n")}`
           : "No recipes match.";
-        return ok(text, { recipes, total: count ?? recipes.length });
+        return ok(text, { recipes, total: raw.total });
       }),
   );
 

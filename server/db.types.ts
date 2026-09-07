@@ -672,6 +672,18 @@ export type Database = {
         Returns: Json;
       };
       round_household: { Args: { rid: string }; Returns: string };
+      search_recipes: {
+        Args: {
+          cookbook?: string;
+          cuisine_q?: string;
+          include_retired?: boolean;
+          lim?: number;
+          max_minutes?: number;
+          q?: string;
+          tag_q?: string;
+        };
+        Returns: Json;
+      };
       shopping_bundle: { Args: never; Returns: Json };
       week_bundle: { Args: { monday: string }; Returns: Json };
     };
