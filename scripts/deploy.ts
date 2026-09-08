@@ -147,6 +147,13 @@ await run(
 await Deno.remove(stage, { recursive: true });
 const size = (await Deno.stat(`${fn}bundle.js`)).size;
 console.log(`→ bundled chef into one module (${(size / 1024).toFixed(0)} KB); deploying to ${ref}`);
+// The project's signing keys, so a fresh worker verifies tokens without fetching them (server/auth.ts).
+// Supabase reserves the SUPABASE_ prefix for secrets, hence the name.
+const jwks = await (await fetch(`${url}/auth/v1/.well-known/jwks.json`)).text();
+if (!JSON.parse(jwks).keys?.length) throw new Error("JWKS fetch returned no keys");
+await retry("secrets set", () =>
+  run(["supabase", "secrets", "set", "--project-ref", ref, `CHEF_JWKS=${jwks}`], { cwd: root.pathname }),
+);
 await retry("functions deploy", () =>
   run(["supabase", "functions", "deploy", "chef", "--project-ref", ref, "--no-verify-jwt"], {
     cwd: root.pathname,
