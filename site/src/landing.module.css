@@ -1,0 +1,308 @@
+/*
+ * The landing page (docs/website.md) on Signal: sheets of copy on the desk, with the planner and the
+ * four apps rendered by the real components between them. Materials come from
+ * packages/ui/views/signal.module.css; this file is layout only.
+ */
+:global(:root) {
+  --font-sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+:global(body) {
+  margin: 0;
+  background: var(--sg-desk);
+  color: var(--sg-print);
+  font-family: var(--sg-body);
+}
+.page {
+  /* the page is the desk: views sit flush, their sheets on the same grid as the copy sheets */
+  --sg-desk-pad: 0px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+  display: grid;
+  gap: 40px;
+}
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 4px 12px;
+  border-bottom: 1px solid var(--sg-rule);
+}
+.nav {
+  display: flex;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+.navLink {
+  font-family: var(--sg-label);
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sg-print-muted);
+  text-decoration: none;
+}
+.navLink:hover,
+.navLink:focus-visible {
+  color: var(--sg-print);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+a:focus-visible {
+  outline: 2px solid var(--sg-focus);
+  outline-offset: 2px;
+}
+
+/* ── hero: the pitch on one sheet, the planner beside it ─────────────── */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 24px;
+  align-items: start;
+}
+.heroSheet {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+.headline {
+  font-family: var(--sg-label);
+  font-weight: 700;
+  font-size: clamp(28px, 4.2vw, 42px);
+  line-height: 1.08;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  margin: 0;
+  text-wrap: balance;
+}
+.lede {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.55;
+  max-width: 58ch;
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.actions a {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.trust {
+  margin: 0;
+  font-family: var(--sg-label);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.8;
+  color: var(--sg-print-muted);
+}
+.planner {
+  display: grid;
+  gap: 8px;
+}
+.plannerCaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ── copy sheets ───────────────────────────────────────────────────── */
+.sheetWide {
+  display: grid;
+  gap: 18px;
+}
+.h2 {
+  font-family: var(--sg-label);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  margin: 0;
+  text-wrap: balance;
+}
+.prose {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.55;
+  max-width: 68ch;
+}
+.prose b {
+  font-weight: 600;
+}
+.pen {
+  font-family: var(--sg-pen);
+  font-size: 21px;
+  line-height: 1.15;
+  color: var(--sg-ink);
+}
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0 24px;
+  counter-reset: step;
+}
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  padding: 14px 0;
+  border-top: 1px solid var(--sg-rule);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.steps li::before {
+  content: counter(step, decimal-leading-zero);
+  font-family: var(--sg-label);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  padding-top: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.steps b {
+  font-weight: 600;
+}
+.steps .pen {
+  display: block;
+  margin-top: 6px;
+}
+.bullets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+  max-width: 68ch;
+}
+.bullets li {
+  padding-left: 18px;
+  position: relative;
+}
+.bullets li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 8px;
+  height: 1px;
+  background: var(--sg-rule);
+}
+.link {
+  color: var(--sg-print);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.sayLines {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+/* ── the four apps, live ───────────────────────────────────────────── */
+.apps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.app {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+}
+.appCaption {
+  display: grid;
+  gap: 4px;
+}
+.appCaption p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--sg-print-muted);
+}
+
+/* ── set up: the steps and the sign-in card ───────────────────────── */
+.setup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 400px);
+  gap: 28px;
+  align-items: start;
+}
+.authCard {
+  display: grid;
+  gap: 16px;
+  border: 1px solid var(--sg-rule);
+  background: var(--sg-paper);
+  padding: 20px 20px 18px;
+}
+.authTitle {
+  font-family: var(--sg-label);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* ── faq ───────────────────────────────────────────────────────────── */
+.faq {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0 32px;
+}
+.faq > div {
+  padding: 14px 0;
+  border-top: 1px solid var(--sg-rule);
+}
+.faq dt {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+.faq dd {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--sg-print-muted);
+}
+
+.footer {
+  margin: 0;
+  padding: 0 4px;
+  font-family: var(--sg-label);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.9;
+  color: var(--sg-print-muted);
+}
+.footer a {
+  color: inherit;
+}
+
+@media (max-width: 880px) {
+  .hero,
+  .apps,
+  .setup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

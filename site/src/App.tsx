@@ -1,6 +1,12 @@
+/**
+ * The site: the landing page, with sign-in inside its "Set up" section, and the sheet Supabase's
+ * OAuth server sends people to (`?authorization_id=…`) for sign-in and consent. One state machine
+ * (`useAuthFlow`) drives both; the pieces of the auth sheet are components so the landing can embed them.
+ */
 import type { Session } from "@supabase/supabase-js";
 import { type FormEvent, useEffect, useState } from "react";
 import css from "./auth.module.css";
+import { Landing } from "./Landing.tsx";
 import {
   authorizationId,
   clearPendingInvite,
@@ -13,15 +19,22 @@ import {
 
 type Details = { clientName: string; clientUri: string | null; scopes: string[] };
 
-type State =
+export type AuthState =
   | { kind: "loading" }
-  | { kind: "no-request"; joined?: string }
+  | { kind: "no-request"; signedIn: boolean; joined?: string }
   | { kind: "sign-in"; id: string | null; error?: string }
   | { kind: "check-email"; email: string }
   | { kind: "consent"; id: string; details: Details; error?: string; busy: boolean; joined?: string };
 
-export function App() {
-  const [state, setState] = useState<State>({ kind: "loading" });
+export type AuthFlow = {
+  state: AuthState;
+  google: (id: string | null) => Promise<void>;
+  magicLink: (id: string | null, e: FormEvent<HTMLFormElement>) => Promise<void>;
+  decide: (approve: boolean) => Promise<void>;
+};
+
+export function useAuthFlow(): AuthFlow {
+  const [state, setState] = useState<AuthState>({ kind: "loading" });
 
   useEffect(() => {
     const id = authorizationId();
@@ -49,7 +62,7 @@ export function App() {
   async function start(id: string | null, session: Session | null) {
     if (!session && pendingInvite()) return setState({ kind: "sign-in", id });
     const joined = await redeemInvite(session);
-    if (!id) return setState({ kind: "no-request", joined });
+    if (!id) return setState({ kind: "no-request", signedIn: !!session, joined });
     if (!session) return setState({ kind: "sign-in", id });
     const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(id);
     if (error || !data) {
@@ -102,61 +115,76 @@ export function App() {
     else forgetAuthorizationId(); // the SDK redirects the browser back to the MCP client
   }
 
+  return { state, google, magicLink, decide };
+}
+
+/** Google, a magic link, and an invite code: the way into a household. */
+export function SignInCard({ flow, id, error }: { flow: AuthFlow; id: string | null; error?: string }) {
+  return (
+    <>
+      <button type="button" className={css.btn} onClick={() => flow.google(id)}>
+        <GoogleIcon /> Continue with Google
+      </button>
+      <p className={css.or}>or get a magic link</p>
+      <form className={css.form} onSubmit={(e) => flow.magicLink(id, e)}>
+        <input className={css.input} type="email" name="email" placeholder="you@example.com" required />
+        <button className={`${css.btn} ${css.primary}`} type="submit">
+          Email me a link
+        </button>
+      </form>
+      <p className={css.or}>Joining someone's household?</p>
+      <input
+        className={css.input}
+        type="text"
+        placeholder="Invite code, e.g. ABCD-1234"
+        defaultValue={pendingInvite() ?? ""}
+        autoCapitalize="characters"
+        aria-label="Invite code"
+        onChange={(e) => {
+          const v = e.currentTarget.value.trim();
+          if (v) setPendingInvite(v);
+          else clearPendingInvite();
+        }}
+      />
+      <p className={css.err}>{error ?? ""}</p>
+    </>
+  );
+}
+
+/** Signed in: the connector URL to paste into Claude Desktop. */
+export function ConnectorCard({ joined }: { joined?: string }) {
+  return (
+    <>
+      {joined && <p className={css.sub}>You've joined {joined}.</p>}
+      <p className={css.sub}>
+        {joined ? "Next: add" : "Add"} chef-gpt as a custom connector in Claude (Settings → Connectors → Add
+        custom connector) with this URL, then connect. It brings you back here to approve.
+      </p>
+      <div className={css.box}>
+        <b>Connector URL</b>
+        <span>{__SUPABASE_URL__}/functions/v1/chef/mcp</span>
+      </div>
+    </>
+  );
+}
+
+/** The sheet on its own: what Claude's authorization request, a magic link, or consent shows. */
+function AuthSheet({ flow }: { flow: AuthFlow }) {
+  const { state } = flow;
   return (
     <main className={css.main}>
       <div className={css.card}>
         {state.kind === "loading" && <p className={css.sub}>Loading…</p>}
 
-        {state.kind === "no-request" && (
-          <>
-            <h1 className={css.title}>{state.joined ? "You're in! 🎉" : "chef-gpt"}</h1>
-            {state.joined && <p className={css.sub}>You've joined {state.joined}.</p>}
-            <p className={css.sub}>
-              {state.joined ? "Next: add" : "Add"} chef-gpt as a custom connector in Claude (Settings →
-              Connectors → Add custom connector) with this URL, then connect — it brings you back here to
-              approve.
-            </p>
-            <div className={css.box}>
-              <b>Connector URL</b>
-              <span>{__SUPABASE_URL__}/functions/v1/chef/mcp</span>
-            </div>
-          </>
-        )}
-
         {state.kind === "sign-in" && (
           <>
-            <h1 className={css.title}>
-              {pendingInvite() ? "You've been invited 🎉" : "Sign in to chef-gpt"}
-            </h1>
+            <h1 className={css.title}>{pendingInvite() ? "You've been invited" : "Sign in to chef-gpt"}</h1>
             <p className={css.sub}>
               {pendingInvite()
                 ? "Sign in to join the household. Your dinners, plans and shopping list will be shared."
                 : "Your household's dinners, plans and shopping list."}
             </p>
-            <button type="button" className={css.btn} onClick={() => google(state.id)}>
-              <GoogleIcon /> Continue with Google
-            </button>
-            <p className={css.or}>or get a magic link</p>
-            <form className={css.form} onSubmit={(e) => magicLink(state.id, e)}>
-              <input className={css.input} type="email" name="email" placeholder="you@example.com" required />
-              <button className={`${css.btn} ${css.primary}`} type="submit">
-                Email me a link
-              </button>
-            </form>
-            <p className={css.or}>Joining someone's household?</p>
-            <input
-              className={css.input}
-              type="text"
-              placeholder="Invite code, e.g. ABCD-1234"
-              defaultValue={pendingInvite() ?? ""}
-              autoCapitalize="characters"
-              onChange={(e) => {
-                const v = e.currentTarget.value.trim();
-                if (v) setPendingInvite(v);
-                else clearPendingInvite();
-              }}
-            />
-            <p className={css.err}>{state.error ?? ""}</p>
+            <SignInCard flow={flow} id={state.id} error={state.error} />
           </>
         )}
 
@@ -172,7 +200,7 @@ export function App() {
         {state.kind === "consent" && (
           <>
             <h1 className={css.title}>Authorize {state.details.clientName}</h1>
-            {state.joined && <p className={css.sub}>You've joined {state.joined}. 🎉</p>}
+            {state.joined && <p className={css.sub}>You've joined {state.joined}.</p>}
             <p className={css.sub}>This app wants to use chef-gpt on your behalf.</p>
             <div className={css.box}>
               <b>Application</b>
@@ -195,11 +223,16 @@ export function App() {
                 type="button"
                 className={`${css.btn} ${css.primary}`}
                 disabled={state.busy}
-                onClick={() => decide(true)}
+                onClick={() => flow.decide(true)}
               >
                 Approve
               </button>
-              <button type="button" className={css.btn} disabled={state.busy} onClick={() => decide(false)}>
+              <button
+                type="button"
+                className={css.btn}
+                disabled={state.busy}
+                onClick={() => flow.decide(false)}
+              >
                 Deny
               </button>
             </div>
@@ -209,6 +242,18 @@ export function App() {
       </div>
     </main>
   );
+}
+
+export function App() {
+  const flow = useAuthFlow();
+  const { state } = flow;
+  // Claude's request, a magic-link return, and consent get the sheet alone; everyone else the site.
+  const standalone =
+    (state.kind === "sign-in" && state.id !== null) ||
+    state.kind === "check-email" ||
+    state.kind === "consent" ||
+    (state.kind === "loading" && authorizationId() !== null);
+  return standalone ? <AuthSheet flow={flow} /> : <Landing flow={flow} />;
 }
 
 function GoogleIcon() {

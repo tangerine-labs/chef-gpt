@@ -11,9 +11,9 @@ import type {
 const img = (seed: string) => `https://picsum.photos/seed/${seed}/88/88`;
 
 export const members: Participant[] = [
-  { memberId: "m1", name: "Björn", hasVoted: true },
+  { memberId: "m1", name: "Dennis", hasVoted: true },
   { memberId: "m2", name: "Emma", hasVoted: false },
-  { memberId: "m3", name: "Noah", hasVoted: false },
+  { memberId: "m3", name: "Charlie", hasVoted: false },
 ];
 
 export const recipes: RecipeSummary[] = [

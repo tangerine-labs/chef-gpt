@@ -51,6 +51,9 @@
   --sg-label: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
   --sg-body: var(--font-sans, Inter, system-ui, -apple-system, sans-serif);
   --sg-pen: "Shadows Into Light", "Bradley Hand", "Segoe Print", cursive;
+  /* spacing: the desk around a view's sheet (0 on a page that is already a desk), the sheet's own padding */
+  --sg-desk-pad: 12px;
+  --sg-sheet-pad: 14px;
   /* motion */
   --sg-settle: 200ms;
   --sg-ink-reveal: 300ms;
