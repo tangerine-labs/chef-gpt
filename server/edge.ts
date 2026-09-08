@@ -17,7 +17,7 @@
  * Every response carries a Server-Timing header (boot age, handle time, database time) and the
  * function logs one JSON line per request; see docs/performance.md.
  */
-import { MCP_PATH, PUBLIC_BASE, SITE_ORIGIN } from "./config.ts";
+import { MCP_PATH, PUBLIC_BASE, SITE_ORIGIN, SUPABASE_ANON_KEY, SUPABASE_URL } from "./config.ts";
 import { REGION, recordRequest } from "./request-log.ts";
 import { type RequestTiming, serverTiming, timing, WORKER } from "./timing.ts";
 
@@ -25,6 +25,17 @@ type Fetcher = (req: Request) => Promise<Response> | Response;
 
 const ROOT_PRM = `/.well-known/oauth-protected-resource${MCP_PATH}`;
 const PUBLIC_PRM = `${PUBLIC_BASE}/.well-known/oauth-protected-resource`;
+
+/*
+ * A worker's first PostgREST call pays the TLS handshake to the project's gateway (about 60 ms,
+ * docs/performance.md 2026-09-08). Start it while the runtime is still loading the server and
+ * verifying the token; fetch's pool then hands the open connection to the tool's query. Only on
+ * the platform (tests import this module too).
+ */
+if (REGION !== null)
+  fetch(`${SUPABASE_URL}/rest/v1/`, { method: "HEAD", headers: { apikey: SUPABASE_ANON_KEY } })
+    .then((r) => r.body?.cancel())
+    .catch(() => {});
 
 export function publicPath(pathname: string): string {
   const p = pathname.startsWith("/functions/v1/") ? pathname.slice("/functions/v1".length) : pathname;

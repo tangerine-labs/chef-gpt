@@ -8,6 +8,8 @@
     "react/jsx-runtime": "npm:react@19/jsx-runtime",
     "react-dom": "npm:react-dom@19",
     "zod": "npm:zod@4",
-    "tslib": "npm:tslib@2"
+    "tslib": "npm:tslib@2",
+    "mcp-use/oauth": "npm:mcp-use@2.3.4/oauth",
+    "jose": "npm:jose@6"
   }
 }

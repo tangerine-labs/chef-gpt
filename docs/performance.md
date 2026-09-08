@@ -172,3 +172,33 @@ The request log caught a search from Claude Desktop: a `server/discover` (571 ms
 eu-north-1, the database's own region, is not in Supabase's list of function regions; eu-central-1 is the nearest. The edge shim now answers a 307 to the same URL with `forceFunctionRegion=eu-central-1` for MCP requests that land outside Europe (`SB_REGION`), and leaves forced requests alone. The claude.ai connector follows it: its next search ran in 476 ms with 234 ms of database time, against 1306 and 1025 before. The redirect itself is one cheap boot in the far region (about 0.33 s to first byte from us-east-1).
 
 Of the 12 s the person saw in Desktop, the server accounted for about 2.4 s across the two requests before the fix and about 1.2 s after; the rest is the model's turns around the call and the connector's transit.
+
+### 2026-09-08 · tokens verified offline (`CHEF_JWKS`)
+
+`whoami` spent 157 ms in the handler with no database in it: mcp-use's Supabase provider verifies the ES256 bearer against the project's JWKS URL, and a fresh worker per request meant a TLS handshake and a fetch per tool call. `server/auth.ts` keeps the provider and swaps only its token verifier: the project's JWKS, stored by `deno task deploy` in the `CHEF_JWKS` function secret (the `SUPABASE_` prefix is reserved), is tried first and the remote set is the fallback for an unknown key id, so a rotation between deploys still verifies. `server/auth_test.ts` verifies a real token with `fetch` stubbed to throw.
+
+| Name | before | after | handle | db | calls |
+|---|---|---|---|---|---|
+| whoami | 449 | 287 | 48 | 0 | 0 |
+| get_household | 449 | 405 | 175 | 122 | 1 |
+| get_week | 526 | 437 | 187 | 125 | 1 |
+| search_recipes | 439 | 503 | 213 | 140 | 1 |
+| show_week | 416 | 407 | 164 | 111 | 1 |
+| show_shopping_list | 445 | 469 | 179 | 109 | 1 |
+
+p50 in ms, 5 runs, dev project. The handler's non-database share is 48 ms on every tool now, but the database time rose from 70 to 100 ms to 110 to 140: the JWKS fetch had been opening the TLS connection to the project's gateway, and the first PostgREST call now pays that handshake instead. The read tools gain 30 to 90 ms, `whoami` 160. Next lever: open that connection when the worker boots, in parallel with parsing and verification.
+
+### 2026-09-08 · gateway connection opened at boot
+
+`server/edge.ts` now sends one HEAD to `/rest/v1/` when the module evaluates on the platform, so the handshake overlaps loading the server and verifying the token, and the tool's PostgREST call finds the connection in fetch's pool.
+
+| Name | before | after | handle | db | calls |
+|---|---|---|---|---|---|
+| whoami | 287 | 359 | 67 | 0 | 0 |
+| get_household | 405 | 388 | 166 | 115 | 1 |
+| get_week | 437 | 405 | 143 | 87 | 1 |
+| search_recipes | 503 | 459 | 185 | 108 | 1 |
+| show_week | 407 | 357 | 133 | 85 | 1 |
+| show_shopping_list | 469 | 373 | 140 | 89 | 1 |
+
+p50 in ms, 5 runs, dev project. Read tools gain 20 to 100 ms; `whoami`, which never queries, pays about 20 ms for the handshake it does not use, which is fine for a smoke-test tool. The anatomy of a read tool call is now about 230 ms of platform floor, 50 to 70 ms of request parsing and offline token verification, and 85 to 115 ms for the one database round trip, of which the query itself is 50 to 80. What is left is the floor, which only a plan with warm workers moves.

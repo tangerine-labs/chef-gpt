@@ -1,7 +1,7 @@
 import { MCPServer } from "mcp-use";
-import { oauthSupabaseProvider } from "mcp-use/oauth/supabase";
 import { z } from "zod";
-import { AUTH_SITE_URL, MCP_PATH, SITE_ORIGIN, SUPABASE_URL } from "./config.ts";
+import { chefOAuth } from "./auth.ts";
+import { AUTH_SITE_URL, JWKS, MCP_PATH, SITE_ORIGIN, SUPABASE_URL } from "./config.ts";
 import { registerImageProxy } from "./img-proxy.ts";
 import { registerPerf } from "./perf.ts";
 import { registerHouseholdTools } from "./tools/households.ts";
@@ -22,10 +22,11 @@ const server = new MCPServer({
   version: "0.0.1",
   description: "Household meal planning: vote on dinners, plan the week, keep the shopping list.",
   basePath: MCP_PATH,
-  oauth: oauthSupabaseProvider({
+  oauth: chefOAuth({
     supabaseUrl: SUPABASE_URL,
     resource: `${SITE_ORIGIN}${MCP_PATH}`,
     resourceName: "chef-gpt",
+    jwks: JWKS,
   }),
   // Chat hosts send no Origin and are unaffected; a browser on the site gets its origin reflected.
   cors: {
