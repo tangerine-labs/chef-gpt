@@ -187,3 +187,18 @@ Of the 12 s the person saw in Desktop, the server accounted for about 2.4 s acro
 | show_shopping_list | 445 | 469 | 179 | 109 | 1 |
 
 p50 in ms, 5 runs, dev project. The handler's non-database share is 48 ms on every tool now, but the database time rose from 70 to 100 ms to 110 to 140: the JWKS fetch had been opening the TLS connection to the project's gateway, and the first PostgREST call now pays that handshake instead. The read tools gain 30 to 90 ms, `whoami` 160. Next lever: open that connection when the worker boots, in parallel with parsing and verification.
+
+### 2026-09-08 · gateway connection opened at boot
+
+`server/edge.ts` now sends one HEAD to `/rest/v1/` when the module evaluates on the platform, so the handshake overlaps loading the server and verifying the token, and the tool's PostgREST call finds the connection in fetch's pool.
+
+| Name | before | after | handle | db | calls |
+|---|---|---|---|---|---|
+| whoami | 287 | 359 | 67 | 0 | 0 |
+| get_household | 405 | 388 | 166 | 115 | 1 |
+| get_week | 437 | 405 | 143 | 87 | 1 |
+| search_recipes | 503 | 459 | 185 | 108 | 1 |
+| show_week | 407 | 357 | 133 | 85 | 1 |
+| show_shopping_list | 469 | 373 | 140 | 89 | 1 |
+
+p50 in ms, 5 runs, dev project. Read tools gain 20 to 100 ms; `whoami`, which never queries, pays about 20 ms for the handshake it does not use, which is fine for a smoke-test tool. The anatomy of a read tool call is now about 230 ms of platform floor, 50 to 70 ms of request parsing and offline token verification, and 85 to 115 ms for the one database round trip, of which the query itself is 50 to 80. What is left is the floor, which only a plan with warm workers moves.
