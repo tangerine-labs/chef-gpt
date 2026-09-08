@@ -24,6 +24,8 @@ The identity is **Signal**: white dot-grid paper, one black fineliner, one signa
 
 ## Tokens
 
+The box model is `border-box` for everything, set once in `packages/ui/signal.css` so the harness, the website and the gallery measure alike; a full-width control keeps its padding and border inside its box on all three.
+
 From `site/designs/identity-signal.html`. Dark mode is a black desk with the same paper logic, not an inversion; the note stays yellow in both.
 
 | Token | Light | Dark | Use |
