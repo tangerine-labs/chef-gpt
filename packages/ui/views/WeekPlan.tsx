@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import "../signal.css";
+import { Celebration, type CelebrationProps } from "./Celebration.tsx";
 import { Note } from "./Note.tsx";
 import css from "./signal.module.css";
 import { dayName, errorText, type Ranked, type Slot, type Week } from "./types.ts";
@@ -17,12 +18,14 @@ export interface WeekPlanProps {
   ranked: Ranked[];
   /** Persist a slot change; `line` is the one-line summary for the chat. Resolves to the new week. */
   onSet: (date: string, change: SlotChange, line: string) => Promise<Week>;
+  /** A milestone earned by this result (the first week planned): the sheet celebrates once. */
+  celebration?: CelebrationProps | null;
 }
 
 const ordinal = (n: number) =>
   `${n}${["th", "st", "nd", "rd"][n % 10 < 4 && (n < 11 || n > 13) ? n % 10 : 0]}`;
 
-export function WeekPlanView({ week: initial, ranked, onSet }: WeekPlanProps) {
+export function WeekPlanView({ week: initial, ranked, onSet, celebration }: WeekPlanProps) {
   const [week, setWeek] = useState<Week | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
@@ -268,6 +271,7 @@ export function WeekPlanView({ week: initial, ranked, onSet }: WeekPlanProps) {
         <p className={css.sr} aria-live="polite">
           {live}
         </p>
+        {celebration ? <Celebration {...celebration} /> : null}
       </div>
     </div>
   );

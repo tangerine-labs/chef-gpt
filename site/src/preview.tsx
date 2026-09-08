@@ -139,7 +139,7 @@ const stories: Story[] = [
           label: "Week 37",
           participants: [
             { memberId: "a", name: "irena.soderqvist", hasVoted: false },
-            { memberId: "b", name: "Björn Söderqvist", hasVoted: true },
+            { memberId: "b", name: "Dennis Söderqvist", hasVoted: true },
             { memberId: "c", name: "Adrian", hasVoted: false },
             { memberId: "d", name: "Leo", hasVoted: false },
           ],

@@ -52,7 +52,7 @@ Tools take **names, not ids**: `set_slot {recipe: "chorizo"}`, `update_shopping_
 ## Layout
 
 ```
-site/              sign-in + consent page for Supabase's OAuth server (GitHub Pages; Supabase won't serve HTML)
+site/              the website: landing page with sign-in, plus the consent page for Supabase's OAuth server (GitHub Pages; Supabase won't serve HTML)
 server/            mcp-use server: tools/, views/
 packages/domain/   pure domain logic (tiers, ranked list, week math)
 packages/ui/       shared React primitives

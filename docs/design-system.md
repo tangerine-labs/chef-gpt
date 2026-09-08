@@ -46,6 +46,8 @@ From `site/designs/identity-signal.html`. Dark mode is a black desk with the sam
 
 The desk token is painted by our views for now. If it fights a host's chrome in practice, remove it and let the host's surround be the desk.
 
+**Spacing.** Two lengths are tokens because more than one place depends on them: `--sg-desk-pad` (12px), the band of desk a view paints around its sheet, and `--sg-sheet-pad` (14px), the sheet's own padding. A page that is already a desk (the website) sets `--sg-desk-pad` to 0 so views sit flush on the same grid as everything else; inside a host the default stays. Everything else is spaced by layout (`gap`), not margins, and there is no spacing scale beyond these two.
+
 Tier colours stay as in `packages/ui/views/tiers.ts`: S `#FFD700`, A `#EF4444`, B `#F97316`, C `#EAB308`, D `#22C55E`, F `#3B82F6`, GARBAGE `#6B7280`. They appear as square row markers and stamps only, never as text colour.
 
 **Reserved colours**, for exceptions only. Using one is a decision recorded in this document, not a local choice.
@@ -130,7 +132,7 @@ Research notes: spec `_meta.ui.csp` fields are `connectDomains`, `resourceDomain
 
 This document is the source of truth; the fixture gallery (`site/preview.html`, `site/src/fixtures.ts`) is the living proof and is updated right after it. Order of work: this document, then the gallery, then `packages/ui` components.
 
-Built so far: tokens in `packages/ui/signal.css` (fonts bundled from `packages/ui/fonts/`), materials in `packages/ui/views/signal.module.css`, the sticky note as a shared component (`packages/ui/views/Note.tsx`: drag, tap-then-tap, keyboard, loose or placed), the Vote view (tier rows and tray), the Week plan view (seven day rows, the ranked list as a tray, free text in pen, a placed note moves between days or back to the tray) the Shopping list (a spiral notepad sheet taped at the corners, one item per rule, pen ticks and strikes, a pen note naming the recipe, "add an item" on the next rule) and the Round builder (a printed search line, results as printed rows with Add, the tray filling with loose notes, participants as printed names with a pen tick, the label in pen), each with stories in the gallery, the auth site (`site/src/auth.module.css` only; `App.tsx` untouched) as one printed sheet on the desk, and the celebration (`packages/ui/views/Celebration.tsx`, `celebration.module.css`: the date stamp, the shake, the two-burst doodle) with its story on a closed round's ranked list; no view mounts it yet.
+Built so far: tokens in `packages/ui/signal.css` (fonts bundled from `packages/ui/fonts/`), materials in `packages/ui/views/signal.module.css`, the sticky note as a shared component (`packages/ui/views/Note.tsx`: drag, tap-then-tap, keyboard, loose or placed), the Vote view (tier rows and tray), the Week plan view (seven day rows, the ranked list as a tray, free text in pen, a placed note moves between days or back to the tray) the Shopping list (a spiral notepad sheet taped at the corners, one item per rule, pen ticks and strikes, a pen note naming the recipe, "add an item" on the next rule) and the Round builder (a printed search line, results as printed rows with Add, the tray filling with loose notes, participants as printed names with a pen tick, the label in pen), each with stories in the gallery, the website (`site/src/Landing.tsx`, `landing.module.css`: the copy of `docs/website.md` as sheets on the desk, the planner with the ranked list as the hero, the four views live on fixture data, sign-in inside the set-up sheet; the consent sheet on its own in `App.tsx`, `auth.module.css`), and the celebration (`packages/ui/views/Celebration.tsx`, `celebration.module.css`: the date stamp, the shake, the two-burst doodle), mounted by the Week plan through its `celebration` prop; the website plays it when the visitor fills the week.
 
 ## Rejected on the way
 
@@ -138,4 +140,4 @@ Stationery (cream, blue pen), Nordic pastels, Hygge, Fjord and Moss: all read we
 
 ## Not decided
 
-Member marks (emoji, background colour) and whether members get cards; how a compact note reveals its full title; the site's landing page beyond the Notes cut.
+Member marks (emoji, background colour) and whether members get cards; how a compact note reveals its full title.

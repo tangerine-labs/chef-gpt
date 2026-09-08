@@ -10,7 +10,7 @@
   font-family: var(--sg-body);
   font-size: 16px;
   line-height: 1.5;
-  padding: 12px;
+  padding: var(--sg-desk-pad);
   container-type: inline-size;
   overflow-x: clip;
 }
@@ -20,7 +20,7 @@
   background-image: radial-gradient(circle, var(--sg-dot) 0.8px, transparent 1.1px);
   background-size: 10px 10px;
   border: 1px solid var(--sg-rule);
-  padding: 14px;
+  padding: var(--sg-sheet-pad);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 14px;

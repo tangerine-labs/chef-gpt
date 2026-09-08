@@ -1,6 +1,6 @@
 # chef-gpt website: who it is for, what it says, how it looks
 
-The public site at https://tangerine-labs.com/chef-gpt/ is today only the sign-in and consent page. This document is the text of the website we want instead: the reader, the problems, the copy block by block, and the visual direction. The vocabulary is `CONTEXT.md`'s, exactly; the *Avoid* words are listed at the end so the site never drifts.
+The public site at https://tangerine-labs.com/chef-gpt/ is this document built: the reader, the problems, the copy block by block, and the design (section 6, which also records the directions explored before it). The vocabulary is `CONTEXT.md`'s, exactly; the *Avoid* words are listed at the end so the site never drifts.
 
 ## 1. Who reads this
 
@@ -142,9 +142,23 @@ Use the left column; never the right.
 
 "Kids vote too" is allowed as a headline because it describes people, not the role. In body copy the role is *member*.
 
-## 6. Design directions
+## 6. Design
 
-Every mockup lives in `site/designs/`, is served by `deno task dev:site` at `/chef-gpt/designs/<name>.html`, snapped with `deno task preview:snap --page designs/<name>.html`, carries the copy from section 4 verbatim plus a sign-in card in its own style, and is not part of the deployed build.
+**Decided (2026-09-08): the Notes cut on Signal, built from the components.** The site is `site/src/Landing.tsx` on the design system in `docs/design-system.md`: sheets of copy on the desk, and between them the real view components from `packages/ui` on the fixture household, so what the page shows is exactly what the product is. Nothing on the page is a mockup.
+
+- **Hero.** The tagline printed large on a sheet, the sub, the two buttons and the trust line; beside it the Week plan view with the closed round's ranked list in its tray. Put a dinner on a day, by drag or tap-then-tap. When all three notes are placed the sheet celebrates (the date stamp, then two fineliner bursts), which is the first time a view mounts the celebration. "Start over" resets it.
+- **How it works.** The four steps as numbered rules; the example utterance in pen.
+- **The four apps.** Round builder, Vote, Week plan and Shopping list, live, in a two-column grid with a printed caption each.
+- **Or just ask.** The three example lines in pen (what a person says), the names-not-ids paragraph printed.
+- **Kids vote too, Set up, Run your own, FAQ, footer.** Copy as in section 4. The set-up sheet holds the sign-in card (Google, magic link, invite code); signed in, it shows the connector URL instead. An invite link scrolls to it.
+
+The consent sheet (Claude's `?authorization_id=` request, the magic-link return) stands alone as before, in `site/src/App.tsx` with `auth.module.css`.
+
+Body copy is Inter from Google Fonts (`site/index.html`); print and pen are the bundled Space Grotesk and Shadows Into Light. Dark mode is the black desk.
+
+### Directions explored before, kept for the record
+
+Every mockup lives in `site/designs/`, is served by `deno task dev:site` at `/chef-gpt/designs/<name>.html`, snapped with `deno task preview:snap --page designs/<name>.html`, carries the copy from section 4 verbatim plus a sign-in card in its own style, and is not part of the deployed build. They predate Signal and keep their own palettes.
 
 ### Transcript (`transcript.html`)
 
