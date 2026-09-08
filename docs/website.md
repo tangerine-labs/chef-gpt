@@ -56,11 +56,21 @@ Someone building MCP Apps who wants to see OAuth 2.1 with dynamic client registr
 **Sub**: Vote on dinners, plan the week, keep the shopping list. Your household ranks the candidates, the ranked list fills the week, and the ingredients land on one shopping list. In the Claude you already have, by clicking or by asking.
 
 **Primary button**: Sign in and add the connector
-**Secondary link**: See how it works
+**Secondary link**: See it in the chat
+
+**Print**: one photo of dinner on the table, taped to the sheet under the trust line. The only photograph on the page outside the notes; it is what the page is about.
 
 **Trust line under the buttons** (what they need to believe, not how set-up works): Nothing to install · Kids vote without signing in · One household, shared by everyone in it
 
 **Share card and tab**: `site/public/og.png` (1200×630, the headline beside three dinners on notes) and `favicon.svg` (a yellow note with a fineliner tick), linked from `site/index.html`.
+
+### In the conversation
+
+**Headline**: It opens where you already are.
+
+Say what you want, and the app for it opens right in the chat. Nothing to install on anyone's device; the kids rank on your screen. This one is live: place the last candidate and submit.
+
+The frame is a Claude Desktop window with "chef-gpt connected" in its bar. The person's turn: "Emma wants to vote on this week's round". Claude's reply, then the Vote app live inside it (Emma, three of four placed), then Claude's follow-up about closing the round.
 
 ### How it works
 
@@ -73,7 +83,7 @@ Four steps, in the order the household lives them.
 
 ### The four apps
 
-Each app is an MCP App: it opens inside the Claude conversation when the matching tool runs, and it is the same data the tools talk to.
+Each app is an MCP App: it opens inside the Claude conversation when the matching tool runs, and it is the same data the tools talk to. All four are live here, on an example household. One at a time, on tabs, so each is shown large; what you did in one stays done when you come back to it.
 
 - **Round builder.** Search the cookbooks, collect candidates, choose who votes, start voting.
 - **Vote.** Pick your name, place each candidate in a tier. Voting again replaces your earlier ranking.
@@ -130,13 +140,16 @@ Use the left column; never the right.
 
 **Decided (2026-09-08): the Notes cut on Signal, built from the components.** The site is `site/src/Landing.tsx` on the design system in `docs/design-system.md`: sheets of copy on the desk, and between them the real view components from `packages/ui` on the fixture household, so what the page shows is exactly what the product is. Nothing on the page is a mockup.
 
-- **Hero.** The tagline printed large on a sheet, the sub, the two buttons and the trust line; beside it the Week plan view with the closed round's ranked list in its tray. Put a dinner on a day, by drag or tap-then-tap. When all three notes are placed the sheet celebrates (the date stamp, then two fineliner bursts), which is the first time a view mounts the celebration. "Start over" resets it.
+- **Hero.** The headline printed large on a sheet, the sub, the two buttons, the trust line and the taped photo; beside it the Week plan view with the closed round's ranked list in its tray. Put a dinner on a day, by drag or tap-then-tap. When all three notes are placed the sheet celebrates (the date stamp, then two fineliner bursts), which is the first time a view mounts the celebration. "Start over" resets it.
+- **In the conversation.** A Claude Desktop frame (title bar, the person's turn as a bubble, Claude's turns as print) with the Vote view live inside it: the product where it lives.
 - **How it works.** The four steps as numbered rules; the example utterance in pen.
-- **The four apps.** Round builder, Vote, Week plan and Shopping list, live, in a two-column grid with a printed caption each.
+- **The four apps.** Round builder, Vote, Week plan and Shopping list, live, one at a time on tabs, each with a printed caption.
 - **Or just ask.** The three example lines in pen (what a person says), the names-not-ids paragraph printed.
 - **Set up, footer.** Copy as in section 4. The set-up sheet holds the sign-in card (Google, magic link, invite code); signed in, it shows the connector URL instead. An invite link scrolls to it.
 
 The consent sheet (Claude's `?authorization_id=` request, the magic-link return) stands alone as before, in `site/src/App.tsx` with `auth.module.css`.
+
+The copy sheets are plain paper: the dot grid is the views' texture and stays inside them, so the page has one texture where it counts rather than everywhere. Fixture recipes and items are in English on this English page.
 
 Body copy is Inter from Google Fonts (`site/index.html`); print and pen are the bundled Space Grotesk and Shadows Into Light. Dark mode is the black desk.
 
