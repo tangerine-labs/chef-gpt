@@ -18,6 +18,16 @@
   src: url("./fonts/ShadowsIntoLight-latin.woff2") format("woff2");
 }
 
+/*
+ * One box model on every surface (harness, website, gallery): a full-width control's padding and
+ * border stay inside its box, so an <a> styled as a button measures like a <button> does.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
   --sg-desk: #ececec;
   --sg-paper: #ffffff;
