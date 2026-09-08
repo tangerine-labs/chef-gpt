@@ -1,11 +1,12 @@
 /**
  * Renders loading / error states of a tool context, then hands the structured output to the view.
- * While pending, the sheet draws itself (docs/design-system.md, States). Once the output is in,
- * the frame reports how long that took, plus the assets' timing, to /perf (docs/performance.md).
+ * While pending, the sheet draws itself (packages/ui Sheet). Once the output is in, the frame
+ * reports how long that took, plus the assets' timing, to /perf (docs/performance.md).
  */
 import type { ToolContextHandle } from "mcp-use/react";
-import { type CSSProperties, type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import "../../packages/ui/signal.css";
+import { Drawing, Notice } from "../../packages/ui/mod.ts";
 
 const T0 = performance.now();
 let reported = false;
@@ -59,65 +60,6 @@ export function Frame({
 
   if (ctx.status === "pending") return <Drawing />;
   if (ctx.status === "error")
-    return (
-      <div style={desk}>
-        <div style={sheet}>
-          <p style={err}>{String(ctx.error?.message ?? "Something went wrong")}</p>
-        </div>
-      </div>
-    );
+    return <Notice tone="error">{String(ctx.error?.message ?? "Something went wrong")}</Notice>;
   return <>{children(ctx.toolOutput)}</>;
 }
-
-/** The sheet drawing itself: the dot grid fades in and four rules draw left to right, once. */
-function Drawing() {
-  return (
-    <output style={{ ...desk, display: "block" }} aria-busy="true" aria-label="Loading">
-      <style>{`
-        @keyframes sg-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-        @keyframes sg-fade { from { opacity: 0; } to { opacity: 1; } }
-        @media (prefers-reduced-motion: reduce) { .sg-draw * { animation: none !important; } }
-      `}</style>
-      <div className="sg-draw" style={{ ...sheet, animation: "sg-fade 300ms ease both" }}>
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            style={{
-              height: 1,
-              background: "var(--sg-rule)",
-              transformOrigin: "left",
-              animation: `sg-rule 260ms ease ${120 + i * 110}ms both`,
-              marginTop: i === 0 ? 8 : 44,
-              opacity: i === 0 ? 1 : 0.5,
-            }}
-          />
-        ))}
-      </div>
-    </output>
-  );
-}
-
-const desk: CSSProperties = {
-  background: "var(--sg-desk)",
-  color: "var(--sg-print)",
-  fontFamily: "var(--sg-body)",
-  padding: 12,
-};
-const sheet: CSSProperties = {
-  backgroundColor: "var(--sg-paper)",
-  backgroundImage: "radial-gradient(circle, var(--sg-dot) 0.8px, transparent 1.1px)",
-  backgroundSize: "10px 10px",
-  border: "1px solid var(--sg-rule)",
-  padding: 14,
-  minHeight: 200,
-};
-const err: CSSProperties = {
-  margin: 0,
-  fontSize: 14,
-  fontWeight: 600,
-  color: "var(--sg-ink-red)",
-  textDecoration: "underline",
-  textDecorationColor: "var(--sg-ink-red)",
-  textDecorationThickness: 2,
-  textUnderlineOffset: 3,
-};

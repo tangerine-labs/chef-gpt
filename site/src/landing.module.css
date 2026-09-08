@@ -35,10 +35,6 @@
   align-items: center;
   gap: 8px;
 }
-.mark {
-  display: block;
-  flex: none;
-}
 .nav {
   display: flex;
   gap: 22px;
@@ -375,8 +371,13 @@ a:focus-visible {
   color: inherit;
 }
 .footer .mark {
-  display: inline-block;
   vertical-align: -3px;
+}
+.link {
+  color: var(--sg-print);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 @media (max-width: 880px) {

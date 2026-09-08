@@ -16,7 +16,8 @@
     "bench": "deno run -A --env-file=.env scripts/bench.ts",
     "snap": "deno run -A --env-file=.env scripts/snap.ts",
     "preview": "cd site && deno run -A npm:vite@8 --open /chef-gpt/preview.html",
-    "preview:snap": "deno run -A scripts/preview-snap.ts"
+    "preview:snap": "deno run -A scripts/preview-snap.ts",
+    "snap:household": "deno run -A --env-file=.env scripts/household-snap.ts"
   },
   "imports": {
     "mcp-use": "npm:mcp-use@2.3.4",

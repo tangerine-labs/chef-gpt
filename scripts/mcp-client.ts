@@ -2,15 +2,9 @@
  * A minimal MCP client for scripts: one token, JSON-RPC over Streamable HTTP with the
  * 2026-07-28 headers, and the response's Server-Timing kept for the bench.
  */
-import { testUserToken } from "../server/test-users.ts";
 
-export const META = {
-  "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-  "io.modelcontextprotocol/clientInfo": { name: "mcp-call", version: "0" },
-  "io.modelcontextprotocol/clientCapabilities": {
-    extensions: { "io.modelcontextprotocol/ui": { mimeTypes: ["text/html;profile=mcp-app"] } },
-  },
-};
+import { testUserToken } from "../server/test-users.ts";
+import { META, PROTOCOL } from "../site/src/mcp-meta.ts";
 
 /** A JSON-RPC envelope; callers know the shape of `result` for the method they sent. */
 // biome-ignore lint/suspicious/noExplicitAny: shaped by the caller per method
@@ -32,7 +26,7 @@ export async function mcpClient(opts: { url: string; user?: "a" | "b"; local?: b
       const headers: Record<string, string> = {
         "content-type": "application/json",
         accept: "application/json, text/event-stream",
-        "mcp-protocol-version": "2026-07-28",
+        "mcp-protocol-version": PROTOCOL,
         "mcp-method": method,
         authorization: `Bearer ${token}`,
       };

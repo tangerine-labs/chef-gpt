@@ -1,0 +1,85 @@
+/*
+ * Your household on a phone: the desk edge to edge, one strip of tabs that stays put, and the
+ * view's own sheet below. Widens a little on a desk-sized screen. Materials come from
+ * packages/ui/views/signal.module.css; this file is layout only.
+ */
+:global(body) {
+  margin: 0;
+  background: var(--sg-desk);
+  color: var(--sg-print);
+  font-family: var(--sg-body);
+}
+.page {
+  --sg-desk-pad: 0px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 6px 8px 40px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 4px 0;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  background: var(--sg-desk);
+  border-bottom: 1px solid var(--sg-rule);
+}
+.tab {
+  flex: 1;
+  text-align: center;
+  font-family: var(--sg-label);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 12px 6px 11px;
+  margin-bottom: -1px;
+  border-bottom: 3px solid transparent;
+  color: var(--sg-print-muted);
+  text-decoration: none;
+}
+.tab[aria-current="page"] {
+  color: var(--sg-print);
+  border-bottom-color: var(--sg-rule);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--sg-focus);
+  outline-offset: -2px;
+}
+.signIn {
+  gap: 14px;
+  max-width: 420px;
+}
+.foot {
+  margin: 0;
+  padding: 0 4px;
+  font-family: var(--sg-label);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.7;
+  color: var(--sg-print-muted);
+}
+@media (min-width: 700px) {
+  .page {
+    padding: 16px 16px 48px;
+    gap: 16px;
+  }
+}

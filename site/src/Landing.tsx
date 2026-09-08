@@ -18,38 +18,10 @@ import css from "../../packages/ui/views/signal.module.css";
 import { type AuthFlow, ConnectorCard, SignInCard } from "./App.tsx";
 import * as fx from "./fixtures.ts";
 import ld from "./landing.module.css";
+import { Mark } from "./Mark.tsx";
 import { pendingInvite } from "./supabase.ts";
 
 const REPO = "https://github.com/tangerine-labs/chef-gpt";
-
-/** The mark: one yellow note with its tape and a fineliner tick (the favicon, inline). */
-function Mark({ size = 18 }: { size?: number }) {
-  return (
-    <svg className={ld.mark} width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
-      <g transform="rotate(-4 32 34)">
-        <rect x="9" y="11" width="46" height="46" fill="#ffe14d" />
-        <rect
-          x="21"
-          y="6.5"
-          width="22"
-          height="8"
-          fill="#fff"
-          fillOpacity=".65"
-          stroke="#000"
-          strokeWidth="1.5"
-        />
-      </g>
-      <path
-        d="M20 35l8 8 16-19"
-        fill="none"
-        stroke="#000"
-        strokeWidth="4.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 /** The hero week: nothing placed yet except Wednesday's "eating out", so all three notes are in the tray. */
 const heroWeek: Week = {
@@ -246,6 +218,9 @@ export function Landing({ flow }: { flow: AuthFlow }) {
           <a className={ld.navLink} href="#setup">
             Set up
           </a>
+          <a className={ld.navLink} href={`${__SITE_BASE__}household`}>
+            Your household
+          </a>
           <a className={ld.navLink} href={REPO}>
             GitHub
           </a>
@@ -414,7 +389,11 @@ export function Landing({ flow }: { flow: AuthFlow }) {
             </ol>
             <p className={ld.prose}>
               Joining someone's household instead? Open the invite link they sent you and sign in; the invite
-              is redeemed on the way in.
+              is redeemed on the way in. Not the organizer? Then skip the connector:{" "}
+              <a className={ld.link} href={`${__SITE_BASE__}household`}>
+                your household
+              </a>{" "}
+              is on this site, phone first: the week, the vote and the shopping list.
             </p>
           </div>
           <div className={ld.authCard}>
@@ -447,7 +426,7 @@ export function Landing({ flow }: { flow: AuthFlow }) {
       </section>
 
       <p className={ld.footer}>
-        <Mark size={14} /> chef-gpt · Household meal planning as MCP Apps ·{" "}
+        <Mark size={14} className={ld.mark} /> chef-gpt · Household meal planning as MCP Apps ·{" "}
         <a href={REPO}>Source on GitHub</a> · <a href="#setup">Sign in</a> · Built by Tangerine Labs
       </p>
     </main>

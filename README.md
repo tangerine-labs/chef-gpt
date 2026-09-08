@@ -36,6 +36,7 @@ Three tiers, cheapest first: fixture gallery → headless PNG of a deployed view
 deno task preview                                          # fixture gallery in the browser (site/preview.html, every component in several states)
 deno task preview:snap [--story "Vote"] [--dark] [--width 400] [--out x.png]   # same gallery, headless, no backend → PNG
 deno task preview:snap --page designs/transcript.html [--dark] [--width 400]   # a static page under site/ (the website mockup) → PNG
+deno task snap:household [--width 390]                                          # the household screens signed in as test user A, phone first → PNGs
 deno task snap <tool> ['{json}'] [--dark] [--width 600] [--out x.png]          # a deployed view as the test user → PNG (needs .env)
 deno task mcp list | call <tool> '{json}' | read <uri>     # poke the deployed server as the test user (seed data before snapping)
 deno task dev                                              # mcp-use Inspector on localhost for real clicks
@@ -52,7 +53,7 @@ Tools take **names, not ids**: `set_slot {recipe: "chorizo"}`, `update_shopping_
 ## Layout
 
 ```
-site/              the website: landing page with sign-in, plus the consent page for Supabase's OAuth server (GitHub Pages; Supabase won't serve HTML)
+site/              the website: landing page with sign-in, the household screens (week, vote, shopping list) for signed-in members without Claude, plus the consent page for Supabase's OAuth server (GitHub Pages; Supabase won't serve HTML)
 server/            mcp-use server: tools/, views/
 packages/domain/   pure domain logic (tiers, ranked list, week math)
 packages/ui/       shared React primitives

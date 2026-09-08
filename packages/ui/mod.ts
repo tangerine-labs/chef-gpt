@@ -2,6 +2,7 @@
 // server/views/*/view.tsx wires them to the host; site/preview renders them from fixtures.
 export { Celebration, type CelebrationProps, defaultBursts } from "./views/Celebration.tsx";
 export { RoundBuilderView } from "./views/RoundBuilder.tsx";
+export { Drawing, Notice } from "./views/Sheet.tsx";
 export { ShoppingListView } from "./views/ShoppingList.tsx";
 export * from "./views/tiers.ts";
 export * from "./views/types.ts";

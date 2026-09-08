@@ -4,6 +4,8 @@ import "../../packages/ui/signal.css";
 import "../../packages/ui/tokens.css";
 import {
   Celebration,
+  Drawing,
+  Notice,
   RoundBuilderView,
   type ShoppingList,
   ShoppingListView,
@@ -69,6 +71,27 @@ function ClosedRoundSheet({ children }: { children?: React.ReactNode }) {
 }
 
 const stories: Story[] = [
+  { name: "Sheet — drawing", width: 400, render: () => <Drawing /> },
+  {
+    name: "Sheet — notice",
+    width: 400,
+    render: () => (
+      <Notice
+        action={
+          <button type="button" className={css.btnSmall}>
+            Try again
+          </button>
+        }
+      >
+        No round is open. Ask for one in Claude: "start a round".
+      </Notice>
+    ),
+  },
+  {
+    name: "Sheet — error",
+    width: 400,
+    render: () => <Notice tone="error">Your sign-in has expired. Sign in again.</Notice>,
+  },
   {
     name: "Shopping list — mixed",
     width: 600,

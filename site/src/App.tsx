@@ -6,6 +6,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { type FormEvent, useEffect, useState } from "react";
 import css from "./auth.module.css";
+import { Household, pathForScreen, type Screen, screenFromPath } from "./household/Household.tsx";
 import { Landing } from "./Landing.tsx";
 import {
   authorizationId,
@@ -151,11 +152,14 @@ export function SignInCard({ flow, id, error }: { flow: AuthFlow; id: string | n
   );
 }
 
-/** Signed in: the connector URL to paste into Claude Desktop. */
+/** Signed in: the connector URL to paste into Claude Desktop, and the way to the household here. */
 export function ConnectorCard({ joined }: { joined?: string }) {
   return (
     <>
       {joined && <p className={css.sub}>You've joined {joined}.</p>}
+      <a className={`${css.btn} ${css.primary}`} href={`${__SITE_BASE__}household`}>
+        Open your household
+      </a>
       <p className={css.sub}>
         {joined ? "Next: add" : "Add"} chef-gpt as a custom connector in Claude (Settings → Connectors → Add
         custom connector) with this URL, then connect. It brings you back here to approve.
@@ -244,16 +248,37 @@ function AuthSheet({ flow }: { flow: AuthFlow }) {
   );
 }
 
+/** The path under the site base (`household/vote`), from the address bar. */
+const pathHere = () => {
+  const p = location.pathname;
+  return (p.startsWith(__SITE_BASE__) ? p.slice(__SITE_BASE__.length) : p.replace(/^\//, "")).replace(
+    /\/+$/,
+    "",
+  );
+};
+
 export function App() {
   const flow = useAuthFlow();
   const { state } = flow;
+  const [path, setPath] = useState(pathHere);
+  useEffect(() => {
+    const onPop = () => setPath(pathHere());
+    addEventListener("popstate", onPop);
+    return () => removeEventListener("popstate", onPop);
+  }, []);
+  const go = (s: Screen) => {
+    history.pushState(null, "", `${__SITE_BASE__}${pathForScreen(s)}`);
+    setPath(pathHere());
+  };
   // Claude's request, a magic-link return, and consent get the sheet alone; everyone else the site.
   const standalone =
     (state.kind === "sign-in" && state.id !== null) ||
     state.kind === "check-email" ||
     state.kind === "consent" ||
     (state.kind === "loading" && authorizationId() !== null);
-  return standalone ? <AuthSheet flow={flow} /> : <Landing flow={flow} />;
+  if (standalone) return <AuthSheet flow={flow} />;
+  const screen = screenFromPath(path);
+  return screen ? <Household flow={flow} screen={screen} go={go} /> : <Landing flow={flow} />;
 }
 
 function GoogleIcon() {

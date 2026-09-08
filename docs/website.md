@@ -8,6 +8,10 @@ The public site at https://tangerine-labs.com/chef-gpt/ is this document built: 
 
 One adult in a household with kids, who already pays for Claude and has Claude Desktop open most days. They plan dinners for the week because someone has to, they cook from a meal-box cookbook (Aarstiderne, HelloFresh) plus a handful of their own recipes, and the shopping list currently lives in three places. They are comfortable with a settings screen, a connector URL and an OAuth consent page. They do not want to run a server, and they will not install another app on the kids' devices.
 
+### Also: the rest of the household
+
+Everyone in the household who is not the organizer: the partner who wants to vote from their own phone, the teenager who registers, whoever is in the shop with the list. They do not have Claude and should not need it. They sign in on the site (an invite lands them here already) and get **Your household**: the week, the vote and the shopping list, phone first. Nothing else; the organizer runs the rest from Claude.
+
 What they need to believe before they sign in:
 
 - It works inside the Claude I already have. Nothing to install, nothing to host.
@@ -94,13 +98,17 @@ Each app is an MCP App: it opens inside the Claude conversation when the matchin
 
 Everything the apps do you can also say: "plan the week from the last round", "what's for dinner tonight?", "I'm going shopping". Tools take names, not ids. "Retire the tofu bowl", "add milk", "who still needs to vote?" A name that matches two recipes comes back as a question, never a guess.
 
+### Your household (`household/week`, `household/vote`, `household/shopping`)
+
+Not a section of the landing page: the signed-in member's page, phone first, reached from the nav ("Your household"), from the connector card after sign-in, and from the set-up prose. A strip of three tabs that stays put, the real view below it, and one line at the foot: "Rounds, recipes and invites are for Claude: the organizer says it, this page shows it." Signed out, the sheet holds the sign-in card. While a tool answers, the sheet draws itself; when the tool says no ("no open round"), the sheet prints its words with a "Try again". ADR 0007 has the data path.
+
 ### Set up in three steps
 
 1. **Sign in** here with Google or a magic link. That creates your household.
 2. **Add the connector** in Claude Desktop: Settings → Connectors → Add custom connector, and paste the connector URL shown after you sign in.
 3. **Approve.** Claude brings you back here to authorize it. Then open a new chat and say "set up my household".
 
-Joining someone's household instead? Open the invite link they sent you and sign in; the invite is redeemed on the way in.
+Joining someone's household instead? Open the invite link they sent you and sign in; the invite is redeemed on the way in. Not the organizer? Then skip the connector: your household is on this site, phone first: the week, the vote and the shopping list.
 
 ### Dropped on 2026-09-08
 
@@ -145,7 +153,8 @@ Use the left column; never the right.
 - **How it works.** The four steps as numbered rules; the example utterance in pen.
 - **The four apps.** Round builder, Vote, Week plan and Shopping list, live, one at a time on tabs, each with a printed caption.
 - **Or just ask.** The three example lines in pen (what a person says), the names-not-ids paragraph printed.
-- **Set up, footer.** Copy as in section 4. The set-up sheet holds the sign-in card (Google, magic link, invite code); signed in, it shows the connector URL instead. An invite link scrolls to it.
+- **Set up, footer.** Copy as in section 4. Signed in, the set-up card leads with "Open your household".
+- **Your household.** Its own page (`site/src/household/`): the tab strip, the view's own sheet edge to edge on a phone, widening a little on a desk. The three sheet states (drawing, notice, error) are in the gallery as "Sheet — …". The set-up sheet holds the sign-in card (Google, magic link, invite code); signed in, it shows the connector URL instead. An invite link scrolls to it.
 
 The consent sheet (Claude's `?authorization_id=` request, the magic-link return) stands alone as before, in `site/src/App.tsx` with `auth.module.css`.
 
