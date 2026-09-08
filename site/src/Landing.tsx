@@ -133,11 +133,11 @@ export function Landing({ flow }: { flow: AuthFlow }) {
       <section className={ld.hero} aria-label="chef-gpt">
         <div className={`${css.sheet} ${ld.heroSheet}`}>
           <p className={css.labelMuted}>Household meal planning · inside Claude Desktop</p>
-          <h1 className={ld.headline}>Vote on dinners, plan the week, keep the shopping list.</h1>
+          <h1 className={ld.headline}>Dinner, decided together.</h1>
           <p className={ld.lede}>
-            chef-gpt is household meal planning inside Claude Desktop. Your household ranks the candidates,
-            the week fills itself from the ranked list, and the ingredients land on one shopping list. Click
-            in the apps, or just ask.
+            Vote on dinners, plan the week, keep the shopping list. Your household ranks the candidates, the
+            ranked list fills the week, and the ingredients land on one shopping list. In the Claude you
+            already have, by clicking or by asking.
           </p>
           <div className={ld.actions}>
             <a className={css.btnPrimary} href="#setup">
@@ -148,8 +148,7 @@ export function Landing({ flow }: { flow: AuthFlow }) {
             </a>
           </div>
           <p className={ld.trust}>
-            Works with Claude Desktop custom connectors · Sign in with Google or a magic link · One household,
-            shared by everyone in it
+            Nothing to install · Kids vote without signing in · One household, shared by everyone in it
           </p>
         </div>
         <HeroPlanner />
@@ -264,19 +263,6 @@ export function Landing({ flow }: { flow: AuthFlow }) {
         </p>
       </section>
 
-      <section className={`${css.sheet} ${ld.sheetWide}`} aria-labelledby="kids-h">
-        <p className={css.labelMuted}>Members</p>
-        <h2 id="kids-h" className={ld.h2}>
-          Kids vote too
-        </h2>
-        <p className={ld.prose}>
-          A member is a person in the household who can vote. Members do not need to sign in: add the kids by
-          first name and they rank on your screen. Adults who want chef-gpt in their own Claude get an invite,
-          a single-use code that joins them to the household and links them to their member. All signed-in
-          members are equal.
-        </p>
-      </section>
-
       <section id="setup" className={`${css.sheet} ${ld.sheetWide}`} aria-labelledby="setup-h">
         <p className={css.labelMuted}>Set up in three steps</p>
         <div className={ld.setup}>
@@ -335,74 +321,6 @@ export function Landing({ flow }: { flow: AuthFlow }) {
             )}
           </div>
         </div>
-      </section>
-
-      <section className={`${css.sheet} ${ld.sheetWide}`} aria-labelledby="own-h">
-        <p className={css.labelMuted}>Run your own</p>
-        <h2 id="own-h" className={ld.h2}>
-          One Supabase project, Deno only
-        </h2>
-        <p className={ld.prose}>
-          chef-gpt is open source. The whole stack is one Supabase project: Postgres with Row Level Security
-          for tenancy, Supabase Auth as the OAuth 2.1 server, and one Deno edge function that serves the MCP
-          endpoint and the app views. The consent page is a static site on GitHub Pages.{" "}
-          <code>scripts/setup-supabase.sh</code> walks you through creating the projects; the decisions are
-          written down in <code>docs/adr/</code>.
-        </p>
-        <ul className={ld.bullets}>
-          <li>A bug in a tool handler cannot read another household's data. The database refuses.</li>
-          <li>Deno is the only toolchain. No Node, no npm.</li>
-          <li>Views are plain React components with a fixture gallery, snapshotted in CI, light and dark.</li>
-        </ul>
-        <p className={ld.prose}>
-          <a className={ld.link} href={REPO}>
-            github.com/tangerine-labs/chef-gpt
-          </a>
-        </p>
-      </section>
-
-      <section className={`${css.sheet} ${ld.sheetWide}`} aria-labelledby="faq-h">
-        <p className={css.labelMuted}>FAQ</p>
-        <h2 id="faq-h" className={ld.h2}>
-          Questions
-        </h2>
-        <dl className={ld.faq}>
-          <div>
-            <dt>Which Claude do I need?</dt>
-            <dd>
-              Claude Desktop with custom connectors (a paid plan). The apps render in the desktop app; the
-              tools also work anywhere the connector is available.
-            </dd>
-          </div>
-          <div>
-            <dt>Is there a winner?</dt>
-            <dd>
-              No. A closed round gives a ranked list, candidates ordered by summed tier points. People choose
-              from it by hand.
-            </dd>
-          </div>
-          <div>
-            <dt>Where are my recipes from?</dt>
-            <dd>
-              System cookbooks (Aarstiderne, HelloFresh) are visible to every household and can be switched
-              off. Your household's own cookbook holds recipes you dictate, that Claude writes, or that you
-              copy from a system cookbook to edit.
-            </dd>
-          </div>
-          <div>
-            <dt>Where is my data?</dt>
-            <dd>
-              In a Postgres database, scoped to your household by Row Level Security. Every request carries
-              your own token; there is no shared service account in the request path.
-            </dd>
-          </div>
-          <div>
-            <dt>Can I belong to two households?</dt>
-            <dd>
-              Yes. An invite joins you to another household, and that household becomes the one you act in.
-            </dd>
-          </div>
-        </dl>
       </section>
 
       <p className={ld.footer}>

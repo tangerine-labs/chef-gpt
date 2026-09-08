@@ -17,7 +17,7 @@ What they need to believe before they sign in:
 
 ### Secondary: the developer who wants the reference
 
-Someone building MCP Apps who wants to see OAuth 2.1 with dynamic client registration, interactive views inside Claude Desktop, and Postgres Row Level Security tenancy, all on one Supabase project with a Deno-only toolchain. They get one section and the repo link. They read ADRs, not taglines.
+Someone building MCP Apps who wants to see OAuth 2.1 with dynamic client registration, interactive views inside Claude Desktop, and Postgres Row Level Security tenancy, all on one Supabase project with a Deno-only toolchain. They get the repo link in the nav and the footer; the reference is the README and the ADRs. They read ADRs, not taglines.
 
 ## 2. The problems it addresses
 
@@ -31,7 +31,9 @@ Someone building MCP Apps who wants to see OAuth 2.1 with dynamic client registr
 
 ## 3. Message hierarchy
 
-**Tagline** (from the README, keep it): *Vote on dinners, plan the week, keep the shopping list.*
+**Headline** (2026-09-08, one promise, not a feature list): *Dinner, decided together.*
+
+**Tagline** (from the README, keep it; it opens the sub): *Vote on dinners, plan the week, keep the shopping list.*
 
 **Sub-line**: *In the Claude you already have. By clicking, or by asking.*
 
@@ -47,14 +49,18 @@ Someone building MCP Apps who wants to see OAuth 2.1 with dynamic client registr
 
 ### Hero
 
-**Headline**: Vote on dinners, plan the week, keep the shopping list.
+**Label**: Household meal planning · inside Claude Desktop
 
-**Sub**: chef-gpt is household meal planning inside Claude Desktop. Your household ranks the candidates, the week fills itself from the ranked list, and the ingredients land on one shopping list. Click in the apps, or just ask.
+**Headline**: Dinner, decided together.
+
+**Sub**: Vote on dinners, plan the week, keep the shopping list. Your household ranks the candidates, the ranked list fills the week, and the ingredients land on one shopping list. In the Claude you already have, by clicking or by asking.
 
 **Primary button**: Sign in and add the connector
 **Secondary link**: See how it works
 
-**Trust line under the buttons**: Works with Claude Desktop custom connectors · Sign in with Google or a magic link · One household, shared by everyone in it
+**Trust line under the buttons** (what they need to believe, not how set-up works): Nothing to install · Kids vote without signing in · One household, shared by everyone in it
+
+**Share card and tab**: `site/public/og.png` (1200×630, the headline beside three dinners on notes) and `favicon.svg` (a yellow note with a fineliner tick), linked from `site/index.html`.
 
 ### How it works
 
@@ -78,10 +84,6 @@ Each app is an MCP App: it opens inside the Claude conversation when the matchin
 
 Everything the apps do you can also say: "plan the week from the last round", "what's for dinner tonight?", "I'm going shopping". Tools take names, not ids. "Retire the tofu bowl", "add milk", "who still needs to vote?" A name that matches two recipes comes back as a question, never a guess.
 
-### Kids vote too
-
-A member is a person in the household who can vote. Members do not need to sign in: add the kids by first name and they rank on your screen. Adults who want chef-gpt in their own Claude get an invite, a single-use code that joins them to the household and links them to their member. All signed-in members are equal.
-
 ### Set up in three steps
 
 1. **Sign in** here with Google or a magic link. That creates your household.
@@ -90,27 +92,9 @@ A member is a person in the household who can vote. Members do not need to sign 
 
 Joining someone's household instead? Open the invite link they sent you and sign in; the invite is redeemed on the way in.
 
-### Run your own
+### Dropped on 2026-09-08
 
-chef-gpt is open source. The whole stack is one Supabase project: Postgres with Row Level Security for tenancy, Supabase Auth as the OAuth 2.1 server, and one Deno edge function that serves the MCP endpoint and the app views. The consent page is a static site on GitHub Pages. `scripts/setup-supabase.sh` walks you through creating the projects; the decisions are written down in `docs/adr/`.
-
-- A bug in a tool handler cannot read another household's data. The database refuses.
-- Deno is the only toolchain. No Node, no npm.
-- Views are plain React components with a fixture gallery, snapshotted in CI, light and dark.
-
-**Link**: github.com/tangerine-labs/chef-gpt
-
-### FAQ
-
-**Which Claude do I need?** Claude Desktop with custom connectors (a paid plan). The apps render in the desktop app; the tools also work anywhere the connector is available.
-
-**Is there a winner?** No. A closed round gives a ranked list, candidates ordered by summed tier points. People choose from it by hand.
-
-**Where are my recipes from?** System cookbooks (Aarstiderne, HelloFresh) are visible to every household and can be switched off. Your household's own cookbook holds recipes you dictate, that Claude writes, or that you copy from a system cookbook to edit.
-
-**Where is my data?** In a Postgres database, scoped to your household by Row Level Security. Every request carries your own token; there is no shared service account in the request path.
-
-**Can I belong to two households?** Yes. An invite joins you to another household, and that household becomes the one you act in.
+"Kids vote too", "Run your own" and the FAQ came off the page: they spoke to builders and to people already using it, and made the audience unclear. The kids line lives on in the trust line; the builders get the repo link; the FAQ answers belong in the README.
 
 ### Footer
 
@@ -150,7 +134,7 @@ Use the left column; never the right.
 - **How it works.** The four steps as numbered rules; the example utterance in pen.
 - **The four apps.** Round builder, Vote, Week plan and Shopping list, live, in a two-column grid with a printed caption each.
 - **Or just ask.** The three example lines in pen (what a person says), the names-not-ids paragraph printed.
-- **Kids vote too, Set up, Run your own, FAQ, footer.** Copy as in section 4. The set-up sheet holds the sign-in card (Google, magic link, invite code); signed in, it shows the connector URL instead. An invite link scrolls to it.
+- **Set up, footer.** Copy as in section 4. The set-up sheet holds the sign-in card (Google, magic link, invite code); signed in, it shows the connector URL instead. An invite link scrolls to it.
 
 The consent sheet (Claude's `?authorization_id=` request, the magic-link return) stands alone as before, in `site/src/App.tsx` with `auth.module.css`.
 

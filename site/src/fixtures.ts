@@ -8,7 +8,14 @@ import type {
   Week,
 } from "../../packages/ui/mod.ts";
 
-const img = (seed: string) => `https://picsum.photos/seed/${seed}/88/88`;
+/** Real dinners for the fixture recipes (Unsplash, free to use), cropped to the 44 px note photo at 2x. */
+const photos: Record<string, string> = {
+  r1: "1473093295043-cdd812d0e601", // pasta with greens and tomatoes
+  r2: "1563379926898-05f4575a45d8", // spaghetti in a red, spicy sauce
+  r3: "1512621776951-a57141f2eefd", // avocado bowl
+  r4: "1567620905732-2d1ec7ab7445", // a stack of pancakes
+};
+const img = (id: string) => `https://images.unsplash.com/photo-${photos[id]}?w=176&h=176&fit=crop&q=80`;
 
 export const members: Participant[] = [
   { memberId: "m1", name: "Dennis", hasVoted: true },
