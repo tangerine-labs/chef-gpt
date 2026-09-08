@@ -2,7 +2,8 @@ import { assertEquals, assertRejects } from "@std/assert";
 import { chefOAuth } from "./auth.ts";
 import { dbTestsEnabled, testUserToken } from "./test-users.ts";
 
-const url = Deno.env.get("SUPABASE_URL") ?? "";
+// Without .env (CI) the DB-backed cases skip; the URL only needs to parse.
+const url = Deno.env.get("SUPABASE_URL") ?? "https://abcdefgh.supabase.co";
 const resource = new URL(`${url}/functions/v1/chef/mcp`);
 const jwksUrl = `${url}/auth/v1/.well-known/jwks.json`;
 
