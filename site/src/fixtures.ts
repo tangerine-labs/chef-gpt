@@ -20,32 +20,32 @@ const img = (id: string) => `https://images.unsplash.com/photo-${photos[id]}?w=1
 export const members: Participant[] = [
   { memberId: "m1", name: "Dennis", hasVoted: true },
   { memberId: "m2", name: "Emma", hasVoted: false },
-  { memberId: "m3", name: "Charlie", hasVoted: false },
+  { memberId: "m3", name: "Charlie", hasVoted: true },
 ];
 
 export const recipes: RecipeSummary[] = [
   {
     id: "r1",
-    title: "Kalkun med spaghetti, grønne asparges og agurk og gulerødder med karsecreme",
+    title: "Turkey spaghetti with green asparagus, cucumber and carrots in cress cream",
     cuisine: "Nordic",
     cookTimeMinutes: 30,
     cookbook: "Aarstiderne",
   },
   {
     id: "r2",
-    title: "Hurtig chorizo- og harissaspaghetti",
+    title: "Quick chorizo and harissa spaghetti",
     cuisine: "Italian",
     cookTimeMinutes: 20,
     cookbook: "HelloFresh",
   },
   {
     id: "r3",
-    title: "Asiatisk avocado- og tofubowl",
+    title: "Asian avocado and tofu bowl",
     cuisine: "Asian",
     cookTimeMinutes: 25,
     cookbook: "HelloFresh",
   },
-  { id: "r4", title: "Pandekager", cuisine: null, cookTimeMinutes: null, cookbook: "Our recipes" },
+  { id: "r4", title: "Pancakes", cuisine: null, cookTimeMinutes: null, cookbook: "Our recipes" },
 ];
 
 export const candidates: Candidate[] = recipes.map((r) => ({
@@ -57,9 +57,15 @@ export const candidates: Candidate[] = recipes.map((r) => ({
 }));
 
 export const ranked: Ranked[] = [
-  { recipeId: "r2", title: "Hurtig chorizo- og harissaspaghetti", points: 13, rank: 1, imageUrl: img("r2") },
-  { recipeId: "r3", title: "Asiatisk avocado- og tofubowl", points: 11, rank: 2, imageUrl: img("r3") },
-  { recipeId: "r1", title: "Kalkun med spaghetti…", points: 6, rank: 3, imageUrl: img("r1") },
+  { recipeId: "r2", title: "Quick chorizo and harissa spaghetti", points: 13, rank: 1, imageUrl: img("r2") },
+  { recipeId: "r3", title: "Asian avocado and tofu bowl", points: 11, rank: 2, imageUrl: img("r3") },
+  {
+    recipeId: "r1",
+    title: "Turkey spaghetti with green asparagus…",
+    points: 6,
+    rank: 3,
+    imageUrl: img("r1"),
+  },
 ];
 
 export const week: Week = {
@@ -80,7 +86,7 @@ export const week: Week = {
             {
               date,
               mealType: "dinner",
-              recipe: { id: "r2", title: "Hurtig chorizo- og harissaspaghetti", imageUrl: img("r2") },
+              recipe: { id: "r2", title: "Quick chorizo and harissa spaghetti", imageUrl: img("r2") },
               title: null,
             },
           ]
@@ -98,25 +104,25 @@ export const shopping: ShoppingList = {
       id: "s3",
       name: "creme fraiche",
       quantity: "1",
-      unit: "bæger",
+      unit: "tub",
       checked: false,
-      recipeTitle: "Kalkun med spaghetti, grønne asparges og agurk og gulerødder med karsecreme",
+      recipeTitle: "Turkey spaghetti with green asparagus, cucumber and carrots in cress cream",
     },
     {
       id: "s4",
-      name: "Chorizo, ternet",
+      name: "Chorizo, diced",
       quantity: "120",
       unit: "g",
       checked: false,
-      recipeTitle: "Hurtig chorizo- og harissaspaghetti",
+      recipeTitle: "Quick chorizo and harissa spaghetti",
     },
     {
       id: "s5",
-      name: "Harissa-krydderi",
+      name: "Harissa spice",
       quantity: "4",
       unit: "g",
       checked: true,
-      recipeTitle: "Hurtig chorizo- og harissaspaghetti",
+      recipeTitle: "Quick chorizo and harissa spaghetti",
     },
   ],
   uncheckedCount: 3,

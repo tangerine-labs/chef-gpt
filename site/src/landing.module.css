@@ -19,7 +19,7 @@
   margin: 0 auto;
   padding: 16px 16px 48px;
   display: grid;
-  gap: 40px;
+  gap: 56px;
 }
 .top {
   display: flex;
@@ -29,6 +29,15 @@
   flex-wrap: wrap;
   padding: 8px 4px 12px;
   border-bottom: 1px solid var(--sg-rule);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.mark {
+  display: block;
+  flex: none;
 }
 .nav {
   display: flex;
@@ -103,6 +112,18 @@ a:focus-visible {
   line-height: 1.8;
   color: var(--sg-print-muted);
 }
+.print {
+  position: relative;
+  margin: 8px 0 0;
+}
+.print img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1000 / 520;
+  object-fit: cover;
+  box-shadow: 0 1px 2px var(--sg-shadow);
+}
 .planner {
   display: grid;
   gap: 8px;
@@ -115,7 +136,11 @@ a:focus-visible {
   flex-wrap: wrap;
 }
 
-/* ── copy sheets ───────────────────────────────────────────────────── */
+/* ── copy sheets: plain paper; the dot grid is the views' texture, not the page's ── */
+.copy {
+  background-image: none;
+  padding: 24px;
+}
 .sheetWide {
   display: grid;
   gap: 18px;
@@ -150,7 +175,7 @@ a:focus-visible {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0 24px;
   counter-reset: step;
 }
@@ -186,26 +211,129 @@ a:focus-visible {
   padding: 4px 0;
 }
 
-/* ── the four apps, live ───────────────────────────────────────────── */
-.apps {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px;
+/* ── the conversation frame: the host's chrome around the real view ── */
+.chat {
+  margin: 0;
+  border: 1px solid var(--sg-rule);
+  border-radius: 12px;
+  background: var(--sg-paper);
+  box-shadow: 0 16px 48px var(--sg-shadow);
+  overflow: hidden;
 }
-.app {
+.chatBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--sg-rule-soft);
+  font-family: var(--sg-label);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sg-print-muted);
+}
+.chatDots {
+  display: inline-flex;
+  gap: 6px;
+}
+.chatDots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--sg-rule-soft);
+}
+.chatConnector {
+  margin-left: auto;
+}
+.chatConnector::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sg-ink-green);
+  margin-right: 7px;
+  vertical-align: 1px;
+}
+.chatBody {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 24px 28px;
   display: grid;
-  gap: 8px;
-  align-content: start;
+  gap: 18px;
+}
+.userTurn {
+  margin: 0;
+  justify-self: end;
+  max-width: 75%;
+  padding: 10px 16px;
+  border-radius: 18px 18px 4px 18px;
+  background: var(--sg-desk);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.assistantTurn {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  max-width: 62ch;
+}
+.embed {
   min-width: 0;
 }
-.appCaption {
+
+/* ── the four apps, one at a time ─────────────────────────────────── */
+.appsWrap {
   display: grid;
-  gap: 4px;
+  gap: 20px;
 }
-.appCaption p {
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--sg-rule);
+}
+.tab {
+  font-family: var(--sg-label);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 10px 14px 12px;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--sg-print-muted);
+  cursor: pointer;
+}
+.tab:hover {
+  color: var(--sg-print);
+}
+.tab[aria-selected="true"] {
+  color: var(--sg-print);
+  border-bottom-color: var(--sg-rule);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--sg-focus);
+  outline-offset: -2px;
+}
+.panel {
+  display: grid;
+  gap: 12px;
+  max-width: 820px;
+  width: 100%;
+  margin: 0 auto;
+  min-width: 0;
+}
+.panel[hidden] {
+  display: none;
+}
+.blurb {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--sg-print-muted);
 }
 
@@ -246,11 +374,29 @@ a:focus-visible {
 .footer a {
   color: inherit;
 }
+.footer .mark {
+  display: inline-block;
+  vertical-align: -3px;
+}
 
 @media (max-width: 880px) {
   .hero,
-  .apps,
   .setup {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .copy {
+    padding: 18px 16px;
+  }
+  .chatBody {
+    padding: 16px 12px 20px;
+  }
+  .userTurn {
+    max-width: 90%;
+  }
+  .tab {
+    padding: 8px 10px 10px;
+    font-size: 11px;
   }
 }
