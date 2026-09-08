@@ -180,35 +180,6 @@ a:focus-visible {
   display: block;
   margin-top: 6px;
 }
-.bullets {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 8px;
-  font-size: 15px;
-  line-height: 1.5;
-  max-width: 68ch;
-}
-.bullets li {
-  padding-left: 18px;
-  position: relative;
-}
-.bullets li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.62em;
-  width: 8px;
-  height: 1px;
-  background: var(--sg-rule);
-}
-.link {
-  color: var(--sg-print);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-}
 .sayLines {
   display: grid;
   gap: 6px;
@@ -259,29 +230,6 @@ a:focus-visible {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   margin: 0;
-}
-
-/* ── faq ───────────────────────────────────────────────────────────── */
-.faq {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 0 32px;
-}
-.faq > div {
-  padding: 14px 0;
-  border-top: 1px solid var(--sg-rule);
-}
-.faq dt {
-  font-weight: 600;
-  font-size: 15px;
-  margin-bottom: 4px;
-}
-.faq dd {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--sg-print-muted);
 }
 
 .footer {
