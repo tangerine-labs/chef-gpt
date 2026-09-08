@@ -6,6 +6,7 @@
       "!**/node_modules",
       "!**/.mcp-use",
       "!**/dist",
+      "!scratch",
       "!supabase/functions/chef/server.js",
       "!**/mcp-env.d.ts",
       "!**/.vite"

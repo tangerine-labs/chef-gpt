@@ -1,5 +1,6 @@
 // Presentational view components: no MCP hooks, props in, callbacks out.
 // server/views/*/view.tsx wires them to the host; site/preview renders them from fixtures.
+export { Celebration, type CelebrationProps, defaultBursts } from "./views/Celebration.tsx";
 export { RoundBuilderView } from "./views/RoundBuilder.tsx";
 export { ShoppingListView } from "./views/ShoppingList.tsx";
 export * from "./views/tiers.ts";
