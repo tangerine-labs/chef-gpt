@@ -15,6 +15,7 @@
   overflow-x: clip;
 }
 .sheet {
+  position: relative; /* overlays (the celebration) fill the sheet */
   background-color: var(--sg-paper);
   background-image: radial-gradient(circle, var(--sg-dot) 0.8px, transparent 1.1px);
   background-size: 10px 10px;

@@ -18,7 +18,9 @@ The identity is **Signal**: white dot-grid paper, one black fineliner, one signa
 
 **Pen.** Black ink is what a person said or wrote: a slot filled by hand, "eating out", a shopping item they dictated. Red is a correction, a question, or an error: a struck entry, "Which one: chorizo pasta or kalkun?", a field underlined in red marker. Red pen is a thicker nib than black (2px strikes and underlines, weight 600 text) and never below 14px, because thin red on white does not read. The system never writes in pen; it prints.
 
-**Stamp.** A tier stamp is a square tile in the tier colour with the letter in black, pressed on a note. Where a note shows how members rated it, it carries one small stamp per member. Members themselves are a separate exploration: each member picks an emoji and possibly a background colour, and that mark appears on their stamp. Not designed yet.
+**Stamp.** A tier stamp is a square tile in the tier colour with the letter in black, pressed on a note. Where a note shows how members rated it, it carries one small stamp per member. Members themselves are a separate exploration: each member picks an emoji and possibly a background colour, and that mark appears on their stamp. Not designed yet. The **date stamp** is the office's other stamp: a 3px red-ruled box, uppercase Space Grotesk at 21px with 0.2em tracking, at a careless seven-degree angle, `FIRST ROUND · 8 SEP 2026`. Red ink here is neither a correction nor a question but the third, official use of the red pen. It marks a milestone (see Celebration under States) and stays on the sheet for good.
+
+**Doodle.** Fireworks the way a child draws them in the margin: a rising squiggle, a burst of rays, a dash past each tip, sparks. Fineliner black (1.6px) and the red pen (2px), nothing else. The doodle is the household's celebration, so it is pen, not print, and it is the one time ink appears without a person having written it. It goes in the sheet's blank spots, never over print or notes, and it stays as drawn; it does not fade.
 
 ## Tokens
 
@@ -69,7 +71,7 @@ Space Grotesk (weights 500 and 700, latin subset) and Shadows Into Light (one we
 
 **Shape.** Nothing has a radius, including the confirmation note. Rules are 1px, black in light and white in dark. Buttons are 1px-ruled boxes with uppercase Space Grotesk; the primary button is filled black (white in dark). A disabled button is always opaque: it is drawn in `print-muted` (fill for the primary, rule and text for the secondary), never faded with opacity. Notes rotate at most one degree.
 
-**Motion.** A lifted note tilts and casts a deep shadow; on release it settles in 200ms and, if placed, presses flat. Ink appears with a short left-to-right reveal, 300ms. Nothing loops, nothing autoplays, and `prefers-reduced-motion` removes all of it.
+**Motion.** A lifted note tilts and casts a deep shadow; on release it settles in 200ms and, if placed, presses flat. Ink appears with a short left-to-right reveal, 300ms. Nothing loops, nothing autoplays, and `prefers-reduced-motion` removes all of it. The one exception is a celebration, which plays itself exactly once (see States).
 
 ## States
 
@@ -80,6 +82,8 @@ Space Grotesk (weights 500 and 700, latin subset) and Shadows Into Light (one we
 **Error.** The thing that failed is underlined in red marker and the message is written beside it in red pen. Nothing else on the sheet changes colour.
 
 **Confirmation.** A square orange note laid on top of the sheet (`note-orange`), one sentence and two ruled buttons. Used only for close-round-early and clear-checked.
+
+**Celebration.** The one loud state, for a household's firsts: the first round closed, the household opened, the first week planned (`docs/celebrations.md` has the list, and the concepts that were tried and set aside). The server says which first it was in the tool result; the view plays the celebration once, on that result, never on a re-open or a poll, and it ends still. It is one sequence, `Celebration` in `packages/ui/views/Celebration.tsx`, rendered inside the sheet: at 400ms the **date stamp** slams down (scale 1.8 to 1 in 150ms) and the sheet shakes 2px once; from 750ms the household **doodles** two fireworks in the blank corner, black then red, each with the ink reveal, and both stay. Under two seconds in all. The stamp's text is the milestone and its date; where the stamp and the bursts go is the view's call (`stampAt`, `bursts`), because only the view knows its blank spots. Nothing else on the sheet changes: the ranked list underneath is the same ranked list. With `prefers-reduced-motion` both simply appear. Nothing else on the sheet changes: the ranked list underneath is the same ranked list.
 
 **Live updates.** When another member changes the sheet, the change appears the way it would have if I had made it: a note settles, a tick is drawn, with the same 200 to 300ms motion and nothing more. Whether the host can deliver such updates is a platform question, answered under Hosts.
 
@@ -117,16 +121,16 @@ Research notes: spec `_meta.ui.csp` fields are `connectDomains`, `resourceDomain
 - Drag is the primary and required interaction for placing a note. Tap-then-tap and keyboard stay as the fallback path, targets are labelled by name, and the result is announced. Keyboard order follows the sheet top to bottom; do not overthink it.
 - Touch: a drag starts after 10px of travel (4px for a mouse), the page does not scroll while a note is held, and a drag the platform cancels leaves the note picked up so a tap on a target finishes it.
 - There is no winner. A closed round is a ranked list; the language says "ranked list", "pick by hand".
-- Printed things are stable; handwritten things are the household's. Do not make the system write in pen.
+- Printed things are stable; handwritten things are the household's. Do not make the system write in pen. The celebration doodle is the household's mark, not the system's, and the one case of ink nobody typed.
 - Flatness is state, not decoration: a flat note is placed or rated, a lifted note is still to do. Tape is the same signal for cards and the notepad.
 - One material per object. A recipe is a note when it can be placed, a card when it is read, a pen line on the notepad when it is bought. Never two at once.
-- Three colours and no more: black, signal yellow, signal red. Tier colours are the one exception, and only as markers.
+- Three colours and no more: black, signal yellow, signal red. Tier colours are the one exception, and only as markers. A celebration adds no colour: the stamp is red ink, the doodle is pen and marker.
 
 ## Governance
 
 This document is the source of truth; the fixture gallery (`site/preview.html`, `site/src/fixtures.ts`) is the living proof and is updated right after it. Order of work: this document, then the gallery, then `packages/ui` components.
 
-Built so far: tokens in `packages/ui/signal.css` (fonts bundled from `packages/ui/fonts/`), materials in `packages/ui/views/signal.module.css`, the sticky note as a shared component (`packages/ui/views/Note.tsx`: drag, tap-then-tap, keyboard, loose or placed), the Vote view (tier rows and tray), the Week plan view (seven day rows, the ranked list as a tray, free text in pen, a placed note moves between days or back to the tray) the Shopping list (a spiral notepad sheet taped at the corners, one item per rule, pen ticks and strikes, a pen note naming the recipe, "add an item" on the next rule) and the Round builder (a printed search line, results as printed rows with Add, the tray filling with loose notes, participants as printed names with a pen tick, the label in pen), each with stories in the gallery, and the auth site (`site/src/auth.module.css` only; `App.tsx` untouched) as one printed sheet on the desk.
+Built so far: tokens in `packages/ui/signal.css` (fonts bundled from `packages/ui/fonts/`), materials in `packages/ui/views/signal.module.css`, the sticky note as a shared component (`packages/ui/views/Note.tsx`: drag, tap-then-tap, keyboard, loose or placed), the Vote view (tier rows and tray), the Week plan view (seven day rows, the ranked list as a tray, free text in pen, a placed note moves between days or back to the tray) the Shopping list (a spiral notepad sheet taped at the corners, one item per rule, pen ticks and strikes, a pen note naming the recipe, "add an item" on the next rule) and the Round builder (a printed search line, results as printed rows with Add, the tray filling with loose notes, participants as printed names with a pen tick, the label in pen), each with stories in the gallery, the auth site (`site/src/auth.module.css` only; `App.tsx` untouched) as one printed sheet on the desk, and the celebration (`packages/ui/views/Celebration.tsx`, `celebration.module.css`: the date stamp, the shake, the two-burst doodle) with its story on a closed round's ranked list; no view mounts it yet.
 
 ## Rejected on the way
 

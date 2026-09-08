@@ -3,15 +3,70 @@ import { createRoot } from "react-dom/client";
 import "../../packages/ui/signal.css";
 import "../../packages/ui/tokens.css";
 import {
+  Celebration,
   RoundBuilderView,
   type ShoppingList,
   ShoppingListView,
   VoteView,
   WeekPlanView,
 } from "../../packages/ui/mod.ts";
+import css from "../../packages/ui/views/signal.module.css";
 import * as fx from "./fixtures.ts";
 
 type Story = { name: string; width: number; render: () => React.ReactNode };
+
+/** A celebration plays once; the button remounts the story so it plays again. */
+function Replay({ children }: { children: () => React.ReactNode }) {
+  const [k, setK] = useState(0);
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setK(k + 1)}
+        style={{
+          position: "absolute",
+          right: 8,
+          bottom: 8,
+          zIndex: 20,
+          fontSize: 12,
+          fontFamily: "system-ui",
+        }}
+      >
+        Replay
+      </button>
+      <div key={k}>{children()}</div>
+    </div>
+  );
+}
+/** A closed round's ranked list on a sheet: the moment the celebration lands (no view shows this yet). */
+function ClosedRoundSheet({ children }: { children?: React.ReactNode }) {
+  const ordinal = (n: number) =>
+    `${n}${["th", "st", "nd", "rd"][n % 10 < 4 && (n < 10 || n > 20) ? n % 10 : 0]}`;
+  return (
+    <div className={css.desk}>
+      <div className={css.sheet}>
+        <div className={css.head}>
+          <p className={css.label}>Round · Week 37</p>
+          <p className={css.labelMuted}>Closed · 3 of 3 rated</p>
+        </div>
+        <h1 className={css.title}>Ranked list</h1>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "flex-start" }}>
+          {fx.ranked.map((r) => (
+            <div key={r.recipeId} className={`${css.noteFull} ${css.placed}`}>
+              {r.imageUrl ? <img className={css.notePhoto} src={r.imageUrl} alt="" /> : null}
+              <span className={css.noteTitle}>{r.title}</span>
+              <span className={css.noteMeta}>
+                {ordinal(r.rank)} · {r.points} p
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className={`${css.body} ${css.muted}`}>No winner. Pick by hand: drag them onto the week.</p>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const stories: Story[] = [
   {
@@ -153,6 +208,19 @@ const stories: Story[] = [
         onStart={(r) => fx.later(`Round started with ${r.candidateIds.length} candidates.`)}
         initial={{ query: "spaghetti", results: fx.recipes, candidates: fx.recipes.slice(1, 3) }}
       />
+    ),
+  },
+  {
+    name: "Celebration — first round closed",
+    width: 600,
+    render: () => (
+      <Replay>
+        {() => (
+          <ClosedRoundSheet>
+            <Celebration text="First round · 8 Sep 2026" />
+          </ClosedRoundSheet>
+        )}
+      </Replay>
     ),
   },
   {
